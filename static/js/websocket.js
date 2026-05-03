@@ -198,7 +198,7 @@ const startGame = async () => {
         await stopCurrentGame();
     }
 
-    if (!window.App.providers?.length) {
+    if (!window.App.providersList?.length) {
         showCenterBanner('⚠️ 配置缺失', '请先配置至少一个模型供应商！', '', 3000);
         toggleSettingsModal();
         return;
@@ -287,10 +287,10 @@ const buildPlayerConfigs = () => {
 
         if (roleConfig.model && roleConfig.model !== 'gpt-3.5-turbo') {
             modelName = roleConfig.model;
-            const matchedProvider = window.App.providers.find(p => p.default_model === modelName);
-            providerId = matchedProvider?.id || window.App.providers[0]?.id || '';
+            const matchedProvider = window.App.providersList.find(p => p.default_model === modelName);
+            providerId = matchedProvider?.id || window.App.providersList[0]?.id || '';
         } else {
-            const firstProvider = window.App.providers[0];
+            const firstProvider = window.App.providersList[0];
             providerId = firstProvider?.id || '';
             modelName = firstProvider?.default_model || 'gpt-3.5-turbo';
         }

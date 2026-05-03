@@ -173,6 +173,19 @@ const bindNavigationButtons = () => {
     }
 };
 
+// 初始化音效设置开关状态
+const initSoundSettings = () => {
+    const bgmToggle = document.getElementById('toggle-bgm');
+    const sfxToggle = document.getElementById('toggle-sfx');
+    const voiceToggle = document.getElementById('toggle-voice');
+
+    if (window.getAudioEnabled) {
+        if (bgmToggle) bgmToggle.checked = window.getAudioEnabled('bgm');
+        if (sfxToggle) sfxToggle.checked = window.getAudioEnabled('sfx');
+        if (voiceToggle) voiceToggle.checked = window.getAudioEnabled('voice');
+    }
+};
+
 // ----- 设置弹窗按钮 -----
 const bindSettingsButtons = () => {
     // 保存 API 配置
@@ -190,6 +203,37 @@ const bindSettingsButtons = () => {
         addProviderBtn.addEventListener('click', () => {
             playSound({ id: 'button-click' });
             addNewProvider();
+        });
+    }
+
+    // 音效设置开关
+    const bgmToggle = document.getElementById('toggle-bgm');
+    if (bgmToggle) {
+        bgmToggle.addEventListener('change', () => {
+            playSound({ id: 'button-click' });
+            if (window.setAudioEnabled) {
+                window.setAudioEnabled('bgm', bgmToggle.checked);
+            }
+        });
+    }
+
+    const sfxToggle = document.getElementById('toggle-sfx');
+    if (sfxToggle) {
+        sfxToggle.addEventListener('change', () => {
+            playSound({ id: 'button-click' });
+            if (window.setAudioEnabled) {
+                window.setAudioEnabled('sfx', sfxToggle.checked);
+            }
+        });
+    }
+
+    const voiceToggle = document.getElementById('toggle-voice');
+    if (voiceToggle) {
+        voiceToggle.addEventListener('change', () => {
+            playSound({ id: 'button-click' });
+            if (window.setAudioEnabled) {
+                window.setAudioEnabled('voice', voiceToggle.checked);
+            }
         });
     }
 
@@ -251,12 +295,6 @@ const bindSettingsButtons = () => {
             } else if (tabId === 'roles') {
                 document.getElementById('roles-management')?.classList.remove('hidden');
                 renderRolesGrid();
-            } else if (tabId === 'theme') {
-                document.getElementById('theme-settings')?.classList.remove('hidden');
-                if (window.App.theme) {
-                    const container = document.getElementById('theme-selector');
-                    if (container) window.App.theme.renderThemeSelector(container);
-                }
             } else if (tabId === 'sound') {
                 document.getElementById('sound-settings')?.classList.remove('hidden');
             }
@@ -624,7 +662,7 @@ const checkApiConfig = () => {
     setTimeout(() => {
         try {
             console.log('[Main] 开始检查 API 配置');
-            const providers = window.App.providers || [];
+            const providers = window.App.providersList || [];
             console.log('[Main] providers 数量:', providers.length);
             
             if (providers.length > 0) {
@@ -715,7 +753,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.log('[Main] Providers loaded');
         } catch (e) {
             console.error('[Main] Failed to load providers:', e);
-            window.App.providers = window.App.providers || [];
+            window.App.providersList = window.App.providersList || [];
         }
         console.log('[Main] Step 7 完成');
         
@@ -729,17 +767,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderRolesGrid();
         console.log('[Main] Step 9 完成');
         
-        console.log('[Main] Step 10: 初始化主题');
-        // 10. 初始化主题
-        if (window.App.theme?.initTheme) {
-            window.App.theme.initTheme();
-        }
-        console.log('[Main] Step 10 完成');
-        
-        console.log('[Main] Step 11: 检查 API 配置');
-        // 11. 检查 API 配置
+        console.log('[Main] Step 10: 检查 API 配置');
+        // 10. 检查 API 配置
         checkApiConfig();
-        console.log('[Main] Step 11 完成');
+        console.log('[Main] Step 10 完成');
         
         // 12. 启动回放录制（为当前会话准备）
         if (window.App.replay) {
@@ -757,6 +788,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ==================== 向后兼容：全局导出（推荐使用 window.App.*） ====================
 window.currentGameMode = currentGameMode;
 window.initEventListeners = initEventListeners;
+window.initSoundSettings = initSoundSettings;
 window.toggleDataCenterPanel = toggleDataCenterPanel;
 window.toggleAchievementsPanel = toggleAchievementsPanel;
 window.toggleLeaderboardPanel = toggleLeaderboardPanel;

@@ -60,8 +60,8 @@ const updateStartButtonState = () => {
     if (!startButton) return;
 
     let hasValidProvider = false;
-    if (window.App.providers?.length > 0) {
-        hasValidProvider = window.App.providers.some(p => {
+    if (window.App.providersList?.length > 0) {
+        hasValidProvider = window.App.providersList.some(p => {
             const hasKey = (p.encrypted_api_key?.trim()) ||
                            (p.api_key && !p.api_key.includes('*') && p.api_key.trim());
             const hasUrl = p.api_url?.trim();
@@ -91,6 +91,10 @@ const toggleSettingsModal = () => {
     if (!modal.classList.contains('hidden')) {
         renderProviders();
         renderRolesGrid();
+        // 初始化音效设置开关状态
+        if (window.initSoundSettings) {
+            window.initSoundSettings();
+        }
     }
 };
 

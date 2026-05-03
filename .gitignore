@@ -51,6 +51,8 @@ yarn.lock
 # Data
 data/config.json
 data/game.db
+data/game.db-shm
+data/game.db-wal
 data/.enc_key
 data/*.txt
 

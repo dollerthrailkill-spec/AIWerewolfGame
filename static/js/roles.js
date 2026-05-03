@@ -28,7 +28,7 @@ const renderRolesGrid = () => {
 
     Object.entries(roles).forEach(([id, role]) => {
         const roleCard = document.createElement('div');
-        roleCard.className = 'bg-gothic-gray border border-gothic-red rounded-lg p-4 cursor-pointer hover:border-gothic-gold transition-all duration-300 hover:scale-105';
+        roleCard.className = 'bg-gothic-gray border border-gold-500/20 rounded-lg p-4 cursor-pointer hover:border-gold-400 transition-all duration-300 hover:scale-105';
         roleCard.onclick = () => editRole(id);
 
         const genderText = role.gender === 'male' ? '男' : role.gender === 'female' ? '女' : '未知';
@@ -200,8 +200,8 @@ const populateModelSelect = (select, role) => {
 
     select.innerHTML = '';
 
-    if (window.App.providers?.length > 0) {
-        window.App.providers.forEach(provider => {
+    if (window.App.providersList?.length > 0) {
+        window.App.providersList.forEach(provider => {
             const models = provider.used_models || (provider.default_model ? [provider.default_model] : []);
 
             if (models.length > 0) {

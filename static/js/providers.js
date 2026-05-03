@@ -11,6 +11,11 @@
 // ==================== App 命名空间初始化 ====================================
 window.App = window.App || {};
 
+// 确保 window.App.providers 存在作为方法容器
+if (!window.App.providers || Array.isArray(window.App.providers)) {
+    window.App.providers = {};
+}
+
 // ==================== 供应商数据加载与渲染 ====================
 
 /**
@@ -21,15 +26,16 @@ const loadProviders = async () => {
         const resp = await fetch('/api/config');
         const data = await resp.json();
 
-        window.App.providers = data.providers ? Object.values(data.providers) : [];
+        // 供应商数据存储在 window.App.providersList 中，而不是覆盖 window.App.providers
+        window.App.providersList = data.providers ? Object.values(data.providers) : [];
         window.App.state.providers = data.providers || {};
 
-        console.log(`[Providers] Loaded ${window.App.providers.length} providers from backend`);
+        console.log(`[Providers] Loaded ${window.App.providersList.length} providers from backend`);
         renderProviders();
         updateStartButtonState();
     } catch (e) {
         console.error('[Providers] Failed to load providers:', e);
-        window.App.providers = [];
+        window.App.providersList = [];
         window.App.state.providers = {};
         updateStartButtonState();
     }
@@ -47,67 +53,67 @@ const renderProviders = () => {
 
     container.innerHTML = '';
 
-    window.App.providers.forEach(provider => {
+    window.App.providersList.forEach(provider => {
         const providerDiv = document.createElement('div');
-        providerDiv.className = 'provider-form mb-6 p-4 border border-gothic-red rounded-lg relative bg-gothic-gray bg-opacity-50';
+        providerDiv.className = 'provider-form mb-6 p-4 border border-gold-500/20 rounded-lg relative bg-gothic-gray bg-opacity-50';
         providerDiv.dataset.providerId = provider.id;
 
         providerDiv.innerHTML = `
-            <button class="delete-provider-btn absolute top-2 right-2 text-gothic-red hover:text-gothic-gold p-1" data-id="${provider.id}" title="删除此供应商">
+            <button class="delete-provider-btn absolute top-2 right-2 text-gray-500 hover:text-gold-400 p-1" data-id="${provider.id}" title="删除此供应商">
                 <i class="fa fa-times"></i>
             </button>
 
             <div class="mb-4">
-                <label class="block text-gothic-light mb-2 text-sm">供应商名称 <span class="text-gothic-red">*</span></label>
-                <input type="text" class="provider-name w-full bg-gothic-gray border border-gothic-red rounded px-3 py-2 text-gothic-light text-sm"
+                <label class="block text-gray-300 mb-2 text-sm">供应商名称 <span class="text-gold-400">*</span></label>
+                <input type="text" class="provider-name w-full bg-gothic-gray border border-gold-500/20 rounded px-3 py-2 text-gothic-light text-sm"
                     value="${escapeHtml(provider.name || '')}" placeholder="例如: OpenAI、Azure、Claude">
             </div>
 
             <div class="mb-4">
-                <label class="block text-gothic-light mb-2 text-sm">API Key</label>
+                <label class="block text-gray-300 mb-2 text-sm">API Key</label>
                 <div class="relative">
-                    <input type="password" class="provider-key w-full bg-gothic-gray border border-gothic-red rounded px-3 py-2 text-gothic-light text-sm pr-10"
+                    <input type="password" class="provider-key w-full bg-gothic-gray border border-gold-500/20 rounded px-3 py-2 text-gothic-light text-sm pr-10"
                         value="${escapeHtml(provider.encrypted_api_key || provider.api_key || '')}" placeholder="输入API密钥" data-original-key="${escapeHtml(provider.encrypted_api_key || provider.api_key || '')}">
-                    <button type="button" class="toggle-password-btn absolute right-2 top-1/2 transform -translate-y-1/2 text-gothic-light hover:text-gothic-gold transition-colors" title="显示API密钥">
+                    <button type="button" class="toggle-password-btn absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gold-400 transition-colors" title="显示API密钥">
                         <i class="fa fa-eye"></i>
                     </button>
                 </div>
             </div>
 
             <div class="mb-4">
-                <label class="block text-gothic-light mb-2 text-sm">API Base URL</label>
-                <input type="text" class="provider-url w-full bg-gothic-gray border border-gothic-red rounded px-3 py-2 text-gothic-light text-sm"
+                <label class="block text-gray-300 mb-2 text-sm">API Base URL</label>
+                <input type="text" class="provider-url w-full bg-gothic-gray border border-gold-500/20 rounded px-3 py-2 text-gothic-light text-sm"
                     value="${escapeHtml(provider.api_url || 'https://api.openai.com/v1')}" placeholder="例如: https://api.openai.com/v1">
             </div>
 
             <div class="mb-4">
                 <div class="flex justify-between items-center mb-2">
-                    <label class="block text-gothic-light text-sm">获取模型列表</label>
-                    <button type="button" class="fetch-models-btn text-sm bg-gothic-dark-red border border-gothic-red text-gothic-light px-3 py-1 rounded hover:border-gothic-gold transition-all" data-id="${provider.id}">
+                    <label class="block text-gray-300 text-sm">获取模型列表</label>
+                    <button type="button" class="fetch-models-btn text-sm bg-gold-500/10 border border-gold-500/20 text-gothic-light px-3 py-1 rounded hover:border-gold-400 transition-all" data-id="${provider.id}">
                         <i class="fa fa-refresh mr-1"></i>刷新模型
                     </button>
                 </div>
                 <div class="model-select-area mb-2">
-                    <select class="available-models w-full bg-gothic-gray border border-gothic-red rounded px-3 py-2 text-gothic-light text-sm" data-id="${provider.id}">
+                    <select class="available-models w-full bg-gothic-gray border border-gold-500/20 rounded px-3 py-2 text-gothic-light text-sm" data-id="${provider.id}">
                         <option value="">选择模型...</option>
                         ${(provider.used_models || []).map(m => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join('')}
                     </select>
                 </div>
-                <button type="button" class="add-model-btn w-full bg-gothic-dark-red border border-gothic-red text-gothic-light px-3 py-2 rounded hover:border-gothic-gold transition-all" data-id="${provider.id}">
+                <button type="button" class="add-model-btn w-full bg-gold-500/10 border border-gold-500/20 text-gothic-light px-3 py-2 rounded hover:border-gold-400 transition-all" data-id="${provider.id}">
                     <i class="fa fa-plus mr-1"></i>添加模型到库
                 </button>
             </div>
 
             <div class="mb-4">
                 <div class="flex justify-between items-center mb-2">
-                    <label class="block text-gothic-light text-sm">已配置的模型库</label>
+                    <label class="block text-gray-300 text-sm">已配置的模型库</label>
                     <span class="text-xs text-gray-500 model-count">(${(provider.used_models || []).length} 个)</span>
                 </div>
                 <div class="used-models-container flex flex-wrap gap-2 mb-2" data-id="${provider.id}">
                     ${(provider.used_models || []).map(m => `
-                        <div class="model-chip bg-gothic-gray border border-gothic-red rounded px-3 py-1 text-sm flex items-center gap-2">
+                        <div class="model-chip bg-gothic-gray border border-gold-500/20 rounded px-3 py-1 text-sm flex items-center gap-2">
                             <span class="model-name text-gothic-light">${escapeHtml(m)}</span>
-                            <button type="button" class="remove-model-btn text-gothic-red hover:text-gothic-gold" data-provider-id="${provider.id}" data-model="${escapeHtml(m)}" title="删除此模型">
+                            <button type="button" class="remove-model-btn text-gray-500 hover:text-gold-400" data-provider-id="${provider.id}" data-model="${escapeHtml(m)}" title="删除此模型">
                                 <i class="fa fa-times"></i>
                             </button>
                         </div>
@@ -119,8 +125,8 @@ const renderProviders = () => {
             </div>
 
             <div class="mb-4">
-                <label class="block text-gothic-light mb-2 text-sm">默认模型</label>
-                <select class="default-model-select w-full bg-gothic-gray border border-gothic-red rounded px-3 py-2 text-gothic-light text-sm" data-id="${provider.id}">
+                <label class="block text-gray-300 mb-2 text-sm">默认模型</label>
+                <select class="default-model-select w-full bg-gothic-gray border border-gold-500/20 rounded px-3 py-2 text-gothic-light text-sm" data-id="${provider.id}">
                     ${(provider.used_models || []).map(m => `
                         <option value="${escapeHtml(m)}" ${provider.default_model === m ? 'selected' : ''}>${escapeHtml(m)}</option>
                     `).join('')}
@@ -129,7 +135,7 @@ const renderProviders = () => {
             </div>
 
             <div class="flex gap-2 mt-4">
-                <button type="button" class="test-provider-btn bg-gothic-gray border border-gothic-red text-gothic-light px-4 py-2 rounded hover:border-gothic-gold transition-all" data-id="${provider.id}">
+                <button type="button" class="test-provider-btn bg-gothic-gray border border-gold-500/20 text-gothic-light px-4 py-2 rounded hover:border-gold-400 transition-all" data-id="${provider.id}">
                     <i class="fa fa-check mr-1"></i>测试连接
                 </button>
             </div>
@@ -216,7 +222,7 @@ const addModelToLibrary = (providerId) => {
         return;
     }
 
-    const provider = window.App.providers.find(p => p.id === providerId);
+    const provider = window.App.providersList.find(p => p.id === providerId);
     if (!provider) return;
 
     provider.used_models = provider.used_models || [];
@@ -231,10 +237,10 @@ const addModelToLibrary = (providerId) => {
     // 添加模型芯片到 UI
     const container = form.querySelector('.used-models-container');
     const modelChip = document.createElement('div');
-    modelChip.className = 'model-chip bg-gothic-gray border border-gothic-red rounded px-3 py-1 text-sm flex items-center gap-2';
+    modelChip.className = 'model-chip bg-gothic-gray border border-gold-500/20 rounded px-3 py-1 text-sm flex items-center gap-2';
     modelChip.innerHTML = `
         <span class="model-name text-gothic-light">${selectedModel}</span>
-        <button type="button" class="remove-model-btn text-gothic-red hover:text-gothic-gold" data-provider-id="${providerId}" data-model="${selectedModel}">
+        <button type="button" class="remove-model-btn text-gray-500 hover:text-gold-400" data-provider-id="${providerId}" data-model="${selectedModel}">
             <i class="fa fa-times"></i>
         </button>
     `;
@@ -275,7 +281,7 @@ const addModelToLibrary = (providerId) => {
  * @param {string} modelName - 模型名称
  */
 const removeModelFromLibrary = (providerId, modelName) => {
-    const provider = window.App.providers.find(p => p.id === providerId);
+    const provider = window.App.providersList.find(p => p.id === providerId);
     if (!provider) return;
 
     provider.used_models = provider.used_models || [];
@@ -355,7 +361,7 @@ const renderModelsLibrary = () => {
     const filterSelect = document.getElementById('model-filter-provider');
     if (!container) return;
 
-    const providers = window.App.providers || [];
+    const providers = window.App.providersList || [];
 
     // 构建所有模型的扁平列表
     let allModels = [];
@@ -497,7 +503,7 @@ const addNewProvider = () => {
         default_model: 'gpt-3.5-turbo',
         used_models: []
     };
-    window.App.providers.push(newProvider);
+    window.App.providersList.push(newProvider);
     renderProviders();
 };
 
@@ -632,11 +638,11 @@ const deleteProvider = async (providerId) => {
         console.warn('[Providers] deleteProvider called without providerId');
         return;
     }
-    if (!window.App.providers || !Array.isArray(window.App.providers)) {
+    if (!window.App.providersList || !Array.isArray(window.App.providersList)) {
         console.error('[Providers] window.App.providers is not initialized');
         return;
     }
-    const provider = window.App.providers.find(p => p.id === providerId);
+    const provider = window.App.providersList.find(p => p.id === providerId);
     const providerName = provider?.name || '此供应商';
 
     if (!confirm(`确定要删除供应商"${providerName}"吗？\n\n删除后，使用该供应商的角色配置将失效。`)) {

@@ -10,6 +10,13 @@
 // ==================== App 命名空间初始化 ====================
 window.App = window.App || {};
 
+// ==================== 音频开关状态 ====================
+let audioSettings = {
+    bgmEnabled: true,
+    sfxEnabled: true,
+    voiceEnabled: true
+};
+
 // ==================== 音频元素引用（懒加载） ====================
 
 /**
@@ -59,6 +66,67 @@ const getAudioContext = () => {
     return audioContext;
 };
 
+// ==================== 设置加载与保存 ====================
+
+/**
+ * 从 localStorage 加载音频设置
+ */
+const loadAudioSettings = () => {
+    try {
+        const saved = localStorage.getItem('aiWerewolfAudioSettings');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            audioSettings = { ...audioSettings, ...parsed };
+            console.log('[Audio] Audio settings loaded:', audioSettings);
+        }
+    } catch (e) {
+        console.error('[Audio] Failed to load audio settings:', e);
+    }
+};
+
+/**
+ * 保存音频设置到 localStorage
+ */
+const saveAudioSettings = () => {
+    try {
+        localStorage.setItem('aiWerewolfAudioSettings', JSON.stringify(audioSettings));
+        console.log('[Audio] Audio settings saved:', audioSettings);
+    } catch (e) {
+        console.error('[Audio] Failed to save audio settings:', e);
+    }
+};
+
+/**
+ * 更新音频开关设置
+ * @param {string} type - 开关类型 ('bgm', 'sfx', 'voice')
+ * @param {boolean} enabled - 是否开启
+ */
+const setAudioEnabled = (type, enabled) => {
+    if (type === 'bgm') {
+        audioSettings.bgmEnabled = enabled;
+        if (!enabled) {
+            stopBGM();
+        }
+    } else if (type === 'sfx') {
+        audioSettings.sfxEnabled = enabled;
+    } else if (type === 'voice') {
+        audioSettings.voiceEnabled = enabled;
+    }
+    saveAudioSettings();
+};
+
+/**
+ * 获取音频开关状态
+ * @param {string} type - 开关类型 ('bgm', 'sfx', 'voice')
+ * @returns {boolean} 是否开启
+ */
+const getAudioEnabled = (type) => {
+    if (type === 'bgm') return audioSettings.bgmEnabled;
+    if (type === 'sfx') return audioSettings.sfxEnabled;
+    if (type === 'voice') return audioSettings.voiceEnabled;
+    return true;
+};
+
 // ==================== 初始化 ====================
 
 /**
@@ -67,6 +135,7 @@ const getAudioContext = () => {
  */
 const initAudio = () => {
     console.log('[Audio] Initializing audio elements...');
+    loadAudioSettings();
 
     const audioIds = [
         'bgm', 'button-click', 'seat-sound', 'night-sound',
@@ -92,6 +161,10 @@ const initAudio = () => {
  * 播放背景音乐
  */
 const playBGM = () => {
+    if (!audioSettings.bgmEnabled) {
+        console.log('[Audio] BGM disabled, skipping playback');
+        return;
+    }
     const audio = window.bgm;
     if (audio) {
         audio.volume = 0.3;
@@ -118,6 +191,10 @@ const stopBGM = () => {
  * @param {Object|string} sound - 音频元素或 { id: string }
  */
 const playSound = (sound) => {
+    if (!audioSettings.sfxEnabled) {
+        console.log('[Audio] SFX disabled, skipping playback');
+        return;
+    }
     const soundId = sound?.id || sound;
     if (!soundId) return;
 
@@ -188,6 +265,10 @@ window.App.audio = {
     playTone,
     stopLoopingSounds,
     getAudioContext,
+    loadAudioSettings,
+    saveAudioSettings,
+    setAudioEnabled,
+    getAudioEnabled,
     get audioCtx() { return audioContext; }
 };
 
@@ -199,3 +280,7 @@ window.stopBGM = stopBGM;
 window.playSound = playSound;
 window.playTone = playTone;
 window.stopLoopingSounds = stopLoopingSounds;
+window.loadAudioSettings = loadAudioSettings;
+window.saveAudioSettings = saveAudioSettings;
+window.setAudioEnabled = setAudioEnabled;
+window.getAudioEnabled = getAudioEnabled;

@@ -156,8 +156,9 @@ const onSpeech = (data) => new Promise((resolve) => {
         if (roleVoice.voiceRate !== undefined) customRate = roleVoice.voiceRate;
     }
 
-    // 启动语音播放（带超时保护）
-    const voicePromise = window.voicePlayer
+    // 启动语音播放（带超时保护），检查开关状态
+    const voiceEnabled = window.getAudioEnabled ? window.getAudioEnabled('voice') : true;
+    const voicePromise = (window.voicePlayer && voiceEnabled)
         ? window.voicePlayer.speak(data.content, voiceType, data.player, voiceIndex, customPitch, customRate)
         : Promise.resolve();
     

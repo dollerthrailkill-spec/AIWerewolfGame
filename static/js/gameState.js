@@ -92,7 +92,6 @@ const stopCurrentSpeech = () => {
 window.App.state = gameState;
 window.App.queueState = queueState;
 window.App.speechState = speechState;
-window.App.providers = providers;
 
 window.App.resetGameState = resetGameState;
 window.App.clearTimeouts = clearTimeouts;
