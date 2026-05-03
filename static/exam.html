@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 模型考试 - 第五人格风格</title>
+    <title>AI 模型考试 - 暗黑奇幻版</title>
     <link href="/static/css/style.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
     <link href="/static/css/custom-animations.css" rel="stylesheet">
+    <link href="/static/css/custom-style.css" rel="stylesheet">
     <style>
         .score-display {
             font-size: 1.25rem;
@@ -35,49 +36,69 @@
             background-color: #1f2937;
         }
         #drop-zone {
-            border: 2px dashed #991b1b;
+            border: 2px dashed rgba(212, 168, 48, 0.5);
             transition: all 0.3s;
         }
         #drop-zone.dragover {
             border-color: #fbbf24;
             background-color: rgba(251, 191, 36, 0.1);
         }
+        /* 模型按钮选中状态 */
+        .model-btn.selected {
+            background: linear-gradient(135deg, rgba(212, 168, 48, 0.3), rgba(212, 168, 48, 0.1));
+            border-color: #fbbf24;
+            box-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
+            transform: scale(1.02);
+        }
+        .model-btn.selected::before {
+            content: '✓';
+            color: #fbbf24;
+            font-weight: bold;
+            margin-right: 8px;
+        }
     </style>
 </head>
-<body class="bg-gothic-blue min-h-screen font-serif text-gothic-light overflow-x-hidden">
-    <div class="fixed inset-0 z-0 opacity-30 bg-cover bg-center" style="background-image: url('https://p11-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/0066be6d27204eecba808d4d034679c1~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=2026042209420529A1BC658A371036FED4&rrcfp=f06b921b&x-expires=1779414195&x-signature=R3JFR5K30cSUZRQkLCP8U0QF%2Fr4%3D')"></div>
+<body class="font-noto-sans text-gray-100 min-h-screen overflow-x-hidden selection:bg-gold-500/30">
+    <!-- ====== Background ====== -->
+    <div class="fixed inset-0 z-0">
+        <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('/static/images/backgrounds/day-discussion.webp')"></div>
+        <div class="absolute inset-0 bg-black/60"></div>
+    </div>
+    
+    <!-- ====== Grain Overlay ====== -->
+    <div class="grain-overlay fixed inset-0 z-0 pointer-events-none"></div>
     
     <audio id="button-click" src="/static/audio/button-click.wav" preload="none"></audio>
     
     <script src="/static/js/audio.js"></script>
 
     <div id="exam-page" class="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-8">
-        <button id="back-btn" class="absolute top-4 left-4 bg-gothic-gray border-2 border-gothic-red hover:border-gothic-gold text-gothic-light py-2 px-4 rounded-lg font-serif transition-all duration-300">
+        <button id="back-btn" class="absolute top-4 left-4 bg-gray-900/80 border-2 border-gold-500/30 hover:border-gold-500 text-gray-100 py-2 px-4 rounded-lg font-noto-sans transition-all duration-300 hover:bg-gold-500/10 shadow-lg">
             <i class="fa fa-arrow-left mr-2"></i> 返回主页
         </button>
 
-        <h1 class="mt-16 md:mt-24 text-4xl md:text-5xl font-gothic text-gothic-gold text-shadow-gothic mb-8 text-center">
+        <h1 class="mt-16 md:mt-24 text-4xl md:text-5xl font-cinzel text-white tracking-widest mb-8 text-center drop-shadow-lg">
             AI 模型考试
         </h1>
 
-        <div class="bg-gothic-paper border-2 border-gothic-red rounded-lg p-6 max-w-3xl w-full">
+        <div class="bg-gray-900/90 border-2 border-gold-500/20 rounded-lg p-6 max-w-3xl w-full shadow-xl">
             <div id="file-selection" class="mb-6">
-                <h3 class="text-xl font-gothic text-gothic-gold mb-4">选择题库</h3>
+                <h3 class="text-xl font-cinzel text-white mb-4 tracking-wide">选择题库</h3>
                 <div id="file-list" class="grid gap-3 mb-4"></div>
                 
                 <div id="upload-section" class="mt-4">
-                    <h4 class="font-gothic text-gothic-gold mb-2">上传新题库</h4>
-                    <div id="drop-zone" class="bg-gothic-gray border-2 border-gothic-red rounded-lg p-6 text-center cursor-pointer transition-all duration-300">
-                        <i class="fa fa-cloud-upload text-3xl text-gothic-gold mb-3"></i>
+                    <h4 class="font-cinzel text-white mb-2 tracking-wide">上传新题库</h4>
+                    <div id="drop-zone" class="bg-gray-900/60 border-2 border-gold-500/30 rounded-lg p-6 text-center cursor-pointer transition-all duration-300 hover:border-gold-500">
+                        <i class="fa fa-cloud-upload text-3xl text-gold-500 mb-3"></i>
                         <p>拖放文件到这里，或点击选择</p>
-                        <p class="text-sm text-gray-400 mt-2">支持 .txt 格式</p>
+                        <p class="text-sm text-gray-500 mt-2">支持 .txt 格式</p>
                         <input type="file" id="file-input" accept=".txt" class="hidden">
                     </div>
                 </div>
             </div>
 
             <div id="provider-selection" class="mb-6">
-                <h3 class="text-xl font-gothic text-gothic-gold mb-4">选择模型</h3>
+                <h3 class="text-xl font-cinzel text-white mb-4 tracking-wide">选择模型</h3>
                 <div id="providers-list" class="grid gap-3"></div>
             </div>
 
@@ -85,72 +106,72 @@
                 <div class="flex justify-between items-center">
                     <div>
                         <span class="text-lg">题目进度: </span>
-                        <span id="question-progress" class="font-gothic text-gothic-gold">1 / 50</span>
+                        <span id="question-progress" class="font-cinzel text-gold-400">1 / 50</span>
                     </div>
                     <div class="score-display">
                         <span>总分: </span>
-                        <span id="total-score" class="text-gothic-gold">0</span>
+                        <span id="total-score" class="text-gold-400">0</span>
                         <span> / 100</span>
                     </div>
                 </div>
             </div>
 
             <div id="question-area" class="hidden">
-                <div class="question-number text-gothic-gold mb-3">
+                <div class="question-number text-gold-400 mb-3">
                     <span id="current-question-num">第 1 题</span>
                 </div>
-                <div id="question-text" class="text-lg mb-6 leading-relaxed"></div>
+                <div id="question-text" class="text-lg mb-6 leading-relaxed text-gray-200"></div>
 
                 <div id="answer-area" class="mb-6">
                     <div id="loading-indicator" class="hidden text-center py-4">
-                        <i class="fa fa-spinner fa-spin text-2xl text-gothic-gold"></i>
+                        <i class="fa fa-spinner fa-spin text-2xl text-gold-400"></i>
                         <p class="mt-2">正在请求模型回答...</p>
                     </div>
 
                     <div id="answer-result" class="hidden">
                         <div class="mb-4">
-                            <h4 class="font-gothic text-gothic-gold mb-2">模型回答:</h4>
-                            <p id="model-answer" class="bg-gothic-gray p-3 rounded"></p>
+                            <h4 class="font-cinzel text-gold-400 mb-2 tracking-wide">模型回答:</h4>
+                            <p id="model-answer" class="bg-gray-800/80 p-3 rounded border border-gold-500/20"></p>
                         </div>
                         <div class="mb-4">
-                            <h4 class="font-gothic text-gothic-gold mb-2">正确答案:</h4>
-                            <p id="correct-answer" class="bg-gothic-gray p-3 rounded"></p>
+                            <h4 class="font-cinzel text-gold-400 mb-2 tracking-wide">正确答案:</h4>
+                            <p id="correct-answer" class="bg-gray-800/80 p-3 rounded border border-gold-500/20"></p>
                         </div>
                         <div class="text-center mb-4">
-                            <span id="score-result" class="text-2xl font-gothic"></span>
+                            <span id="score-result" class="text-2xl font-cinzel"></span>
                         </div>
                     </div>
                 </div>
 
                 <div class="flex justify-center gap-4">
-                    <button id="submit-answer-btn" class="bg-gothic-dark-red border-2 border-gothic-red hover:border-gothic-gold text-gothic-light py-2 px-6 rounded-lg font-serif transition-all duration-300">
+                    <button id="submit-answer-btn" class="bg-gray-800 border-2 border-gold-500/30 hover:border-gold-500 text-gray-100 py-2 px-6 rounded-lg font-noto-sans transition-all duration-300 hover:bg-gold-500/10 shadow-lg">
                         <i class="fa fa-paper-plane mr-2"></i> 请求模型回答
                     </button>
-                    <button id="next-question-btn" class="bg-gothic-gray border-2 border-gothic-red hover:border-gothic-gold text-gothic-light py-2 px-6 rounded-lg font-serif transition-all duration-300 hidden">
+                    <button id="next-question-btn" class="bg-gray-800 border-2 border-gold-500/30 hover:border-gold-500 text-gray-100 py-2 px-6 rounded-lg font-noto-sans transition-all duration-300 hover:bg-gold-500/10 hidden shadow-lg">
                         <i class="fa fa-arrow-right mr-2"></i> 下一题
                     </button>
                 </div>
             </div>
 
             <div id="exam-complete" class="hidden text-center">
-                <h2 class="text-3xl font-gothic text-gothic-gold mb-6">考试完成!</h2>
+                <h2 class="text-3xl font-cinzel text-gold-400 mb-6 tracking-widest">考试完成!</h2>
                 <div class="mb-6">
                     <p class="text-2xl mb-2">最终得分</p>
-                    <p id="final-score" class="text-5xl font-gothic text-gothic-gold">0</p>
+                    <p id="final-score" class="text-5xl font-cinzel text-gold-400">0</p>
                     <p class="text-xl">/ <span id="max-score">100</span></p>
                 </div>
                 <div class="mb-6">
                     <p>正确: <span id="correct-count" class="text-green-400">0</span> 题</p>
                     <p>错误: <span id="incorrect-count" class="text-red-400">0</span> 题</p>
                 </div>
-                <button id="restart-btn" class="bg-gothic-dark-red border-2 border-gothic-red hover:border-gothic-gold text-gothic-light py-2 px-6 rounded-lg font-serif transition-all duration-300">
+                <button id="restart-btn" class="bg-gray-800 border-2 border-gold-500/30 hover:border-gold-500 text-gray-100 py-2 px-6 rounded-lg font-noto-sans transition-all duration-300 hover:bg-gold-500/10 shadow-lg">
                     <i class="fa fa-refresh mr-2"></i> 重新考试
                 </button>
             </div>
         </div>
 
-        <div class="mt-8 text-sm text-gray-400">
-            © 2026 AI 狼人杀 - 第五人格风格
+        <div class="mt-8 text-sm text-gray-500">
+            © 2026 AI 狼人杀 - 暗黑奇幻版
         </div>
     </div>
 
@@ -227,18 +248,18 @@
         function renderFileList() {
             const container = document.getElementById('file-list');
             if (examFiles.length === 0) {
-                container.innerHTML = '<p class="text-center text-gray-400">没有可用题库，请上传新题库</p>';
+                container.innerHTML = '<p class="text-center text-gray-500">没有可用题库，请上传新题库</p>';
                 return;
             }
 
             container.innerHTML = examFiles.map(f => `
-                <div class="file-list-item bg-gothic-gray border-2 border-gothic-red py-3 px-4 rounded-lg" data-file="${f}">
+                <div class="file-list-item bg-gray-800/60 border-2 border-gold-500/20 py-3 px-4 rounded-lg transition-all duration-300 hover:border-gold-500" data-file="${f}">
                     <div class="flex justify-between items-center">
                         <div>
-                            <i class="fa fa-file-text-o text-gothic-gold mr-2"></i>
-                            <span class="font-gothic">${f}</span>
+                            <i class="fa fa-file-text-o text-gold-400 mr-2"></i>
+                            <span class="font-cinzel">${f}</span>
                         </div>
-                        <i class="fa fa-check-circle text-gothic-gold hidden check-icon"></i>
+                        <i class="fa fa-check-circle text-gold-400 hidden check-icon"></i>
                     </div>
                 </div>
             `).join('');
@@ -306,7 +327,7 @@
         function renderProviders() {
             const container = document.getElementById('providers-list');
             if (providers.length === 0) {
-                container.innerHTML = '<p class="text-center text-gray-400">请先在狼人杀设置中配置API</p>';
+                container.innerHTML = '<p class="text-center text-gray-500">请先在狼人杀设置中配置API</p>';
                 return;
             }
 
@@ -314,18 +335,18 @@
                 const models = p.used_models || (p.default_model ? [p.default_model] : []);
                 if (models.length === 0) {
                     return `
-                        <div class="provider-option bg-gothic-gray border-2 border-gothic-red text-gothic-light py-3 px-4 rounded-lg transition-all duration-300 text-left opacity-60">
-                            <div class="font-gothic text-lg text-gothic-gold">${p.name}</div>
+                        <div class="provider-option bg-gray-800/60 border-2 border-gold-500/20 text-gray-100 py-3 px-4 rounded-lg transition-all duration-300 text-left opacity-60">
+                            <div class="font-cinzel text-lg text-gold-400">${p.name}</div>
                             <div class="text-sm opacity-80">请先在API设置中添加模型</div>
                         </div>
                     `;
                 }
                 return `
-                    <div class="provider-option bg-gothic-gray border-2 border-gothic-red hover:border-gothic-gold text-gothic-light py-3 px-4 rounded-lg transition-all duration-300" data-provider-id="${p.id}">
-                        <div class="font-gothic text-lg text-gothic-gold mb-3">${p.name}</div>
+                    <div class="provider-option bg-gray-800/60 border-2 border-gold-500/20 hover:border-gold-500 text-gray-100 py-3 px-4 rounded-lg transition-all duration-300" data-provider-id="${p.id}">
+                        <div class="font-cinzel text-lg text-gold-400 mb-3">${p.name}</div>
                         <div class="models-grid grid gap-2">
                             ${models.map(m => `
-                                <button class="model-btn bg-gothic-dark border border-gothic-red hover:border-gothic-gold text-gothic-light py-2 px-3 rounded transition-all duration-300 text-sm text-left" 
+                                <button class="model-btn bg-gray-900 border border-gold-500/20 hover:border-gold-500 text-gray-100 py-2 px-3 rounded transition-all duration-300 text-sm text-left" 
                                         data-provider-id="${p.id}" data-model="${m}">
                                     ${m}
                                 </button>
@@ -337,8 +358,8 @@
 
             container.querySelectorAll('.model-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
-                    container.querySelectorAll('.model-btn').forEach(b => b.classList.remove('border-gothic-gold', 'bg-gothic-dark-red'));
-                    btn.classList.add('border-gothic-gold', 'bg-gothic-dark-red');
+                    container.querySelectorAll('.model-btn').forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
                     selectedProviderId = btn.dataset.providerId;
                     selectedModel = btn.dataset.model;
                 });
@@ -346,7 +367,7 @@
 
             const startBtn = document.createElement('button');
             startBtn.id = 'start-exam-btn';
-            startBtn.className = 'w-full mt-6 bg-gothic-dark-red border-2 border-gothic-red hover:border-gothic-gold text-gothic-light py-3 px-6 rounded-lg font-serif transition-all duration-300';
+            startBtn.className = 'w-full mt-6 bg-gray-800 border-2 border-gold-500/30 hover:border-gold-500 text-gray-100 py-3 px-6 rounded-lg font-noto-sans transition-all duration-300 hover:bg-gold-500/10 shadow-lg';
             startBtn.innerHTML = '<i class="fa fa-play mr-2"></i> 开始考试';
             startBtn.disabled = true;
             startBtn.onclick = () => {

@@ -1,6 +1,6 @@
 # AI 狼人杀游戏
 
-一个基于 FastAPI 和 WebSocket 的 AI 狼人杀游戏，具有第五人格风格的 Gothic 界面。
+一个基于 FastAPI 和 WebSocket 的 AI 狼人杀游戏，具有暗黑奇幻风格的 Gothic 界面。
 
 ![游戏截图](static/images/screenshot.webp)
 
@@ -35,6 +35,13 @@
   - MVP 排行榜
   - 模型胜率排行榜
 - **成就系统**：13个成就等待解锁，包括首胜、速胜、角色大师等
+- **等级和经验值系统**：
+  - 解锁成就和完成每日挑战获取积分
+  - 积分自动转换为经验值
+  - 最高等级999级
+  - 升级有金色提示弹窗
+  - 显示当前等级和经验值进度条
+- **每日挑战系统**：每日随机刷新3个挑战任务
 
 ### 考试系统
 - 支持上传题库文件（.txt格式）
@@ -42,6 +49,8 @@
 - 可选择使用AI模型答题或用户手动答题
 - 自动评分
 - 支持多个题库文件管理
+- 专用题库文件夹（`exam_files/`），避免与其他文件冲突
+- 模型按钮选中状态有明显视觉反馈
 
 ### 多房间支持
 - 支持同时运行多局游戏
@@ -63,7 +72,7 @@
 - **原生 JavaScript** - 无框架依赖
 - **Tailwind CSS** - 本地构建（生产环境优化）
 - **Font Awesome** - 图标
-- **Google Fonts** - MedievalSharp &amp; Playfair Display 字体
+- **Google Fonts** - Cinzel &amp; Noto Sans SC 字体
 
 ## 项目结构
 
@@ -92,11 +101,18 @@ d:/project/AI Werewolf Game/
 ├── static/
 │   ├── index.html             # 主页面
 │   ├── exam.html              # 考试页面
-│   ├── app.js                 # 前端逻辑
+│   ├── js/                    # JavaScript 文件
+│   │   ├── main.js            # 主程序逻辑
+│   │   ├── stats.js           # 统计模块
+│   │   ├── dailyChallenge.js  # 每日挑战模块
+│   │   ├── mvp.js             # MVP 显示模块
+│   │   └── ...
 │   ├── css/
 │   │   └── style.css          # 构建后的 CSS（本地）
 │   └── src/
 │       └── input.css          # CSS 源文件
+├── exam_files/                # 考试题库文件夹（专用）
+│   └── *.txt                  # 题库文件
 ├── tests/                     # 测试套件
 ├── data/
 │   ├── config.json            # API 配置（加密）
@@ -261,6 +277,14 @@ pytest tests/ -q
 ### 成就系统
 - `GET /api/achievements` - 获取所有成就
 - `POST /api/achievements/check` - 检查成就解锁
+
+### 每日挑战
+- `GET /api/daily-challenges` - 获取今日挑战
+- `POST /api/daily-challenges/complete` - 完成挑战
+
+### 用户经验值
+- `GET /api/user/exp` - 获取用户经验值和等级
+- `POST /api/user/exp/sync` - 同步成就和挑战积分到经验值
 
 ### 数据库管理
 - `POST /api/db/cleanup` - 清理过期数据库记录

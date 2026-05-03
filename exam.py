@@ -183,10 +183,17 @@ def _is_cache_stale(cache_entry, file_path: Path, cache_mtime: float) -> bool:
     except FileNotFoundError:
         return True
 
+def _get_exam_dir():
+    """获取题库文件夹路径"""
+    exam_dir = Path(__file__).parent / "exam_files"
+    exam_dir.mkdir(exist_ok=True)
+    return exam_dir
+
+
 async def get_exam_questions_async():
     """异步安全地获取考试题目（异步版本），基于文件 mtime 自动刷新缓存"""
     global _questions_cache, _questions_cache_mtime
-    file_path = Path(__file__).parent / "50.txt"
+    file_path = _get_exam_dir() / "50.txt"
     
     async with _questions_cache_lock:
         if _questions_cache is not None and not _is_cache_stale(_questions_cache, file_path, _questions_cache_mtime):
@@ -200,7 +207,7 @@ async def get_exam_questions_async():
 
 def get_exam_questions():
     global _questions_cache, _questions_cache_mtime
-    file_path = Path(__file__).parent / "50.txt"
+    file_path = _get_exam_dir() / "50.txt"
     
     if _questions_cache is not None:
         try:
@@ -233,7 +240,7 @@ def get_question_by_id(question_id):
 
 
 def get_all_exam_files():
-    exam_dir = Path(__file__).parent
+    exam_dir = _get_exam_dir()
     txt_files = list(exam_dir.glob('*.txt'))
     # 按修改时间排序，最新的在前面
     txt_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
@@ -257,10 +264,10 @@ def save_uploaded_file(file_name, content):
 
     # 使用 UUID 生成安全文件名，防止路径遍历
     safe_name = f"{uuid.uuid4().hex}{ext}"
-    file_path = Path(__file__).parent / safe_name
+    file_path = _get_exam_dir() / safe_name
 
     # 确保解析后的路径仍在项目目录内（防止路径遍历）
-    if not file_path.resolve().is_relative_to(Path(__file__).parent.resolve()):
+    if not file_path.resolve().is_relative_to(_get_exam_dir().resolve()):
         raise ValueError("非法文件名")
 
     file_path.write_bytes(content)
@@ -286,7 +293,7 @@ _async_file_cache_lock = asyncio.Lock()
 async def get_exam_questions_by_file_async(file_name):
     """异步安全地获取指定文件的考试题目（异步版本），基于文件 mtime 自动刷新"""
     global _questions_caches, _questions_caches_mtime
-    file_path = Path(__file__).parent / file_name
+    file_path = _get_exam_dir() / file_name
     if _is_file_cache_valid(file_name, file_path, _questions_caches, _questions_caches_mtime):
         return _questions_caches[file_name]
     async with _async_file_cache_lock:
@@ -309,9 +316,9 @@ def _is_file_cache_valid(file_name, file_path, caches_dict, mtime_dict):
 
 def get_exam_questions_by_file(file_name):
     global _questions_caches, _questions_caches_mtime
-    file_path = Path(__file__).parent / file_name
+    file_path = _get_exam_dir() / file_name
     # 路径遍历防护：确保解析后的路径仍在项目目录内
-    if not file_path.resolve().is_relative_to(Path(__file__).parent.resolve()):
+    if not file_path.resolve().is_relative_to(_get_exam_dir().resolve()):
         raise ValueError("非法文件名")
     if _is_file_cache_valid(file_name, file_path, _questions_caches, _questions_caches_mtime):
         return _questions_caches[file_name]

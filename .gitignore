@@ -77,3 +77,8 @@ process_images.py
 remove_background.py
 remove_bg_api.py
 check_image.py
+process_wolf3.py
+simple_process_wolf3.py
+
+# Backup folders
+**/backup/
