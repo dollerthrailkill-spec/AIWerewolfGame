@@ -1,0 +1,77 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+coverage/
+jest.config.js
+scripts/
+
+# Node.js
+node_modules/
+package-lock.json
+yarn.lock
+
+# Data
+data/config.json
+data/game.db
+data/.enc_key
+data/*.txt
+
+# Logs
+logs/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Claude AI
+.claude/
+
+# Backup files
+*.bak
+*.backup
+
+# Image processing scripts (temp)
+simple_remove_bg.py
+process_images.py
+remove_background.py
+remove_bg_api.py
+check_image.py

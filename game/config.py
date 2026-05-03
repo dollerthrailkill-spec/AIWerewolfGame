@@ -1,0 +1,40 @@
+"""
+游戏时间与行为配置常量
+
+集中管理所有游戏时间参数和 AI 行为配置，便于调整和维护。
+"""
+
+# ==================== 游戏时间常量（秒） ====================
+SLEEP_AFTER_GAME_START = 2.0
+SLEEP_AFTER_PHASE_CHANGE = 1.5
+SLEEP_AFTER_DAWN = 1.0
+SLEEP_AFTER_VOTE_START = 0.5
+SLEEP_AFTER_SPEECH = 0.3
+SLEEP_AFTER_SUB_PHASE = 0.5
+SLEEP_WEREWOLF_THINKING = 1.0
+SLEEP_AFTER_EULOGY = 1.0
+SLEEP_NIGHT_ACTION_ANIMATION = 3.5
+SLEEP_WEREWOLF_VOTE_PAUSE = 1.0
+SLEEP_AFTER_DAY_START = 1.0
+SLEEP_BETWEEN_SPEECHES = 0.3
+
+# ==================== AI 超时设置（秒） ====================
+AI_EULOGY_TIMEOUT = 15.0
+
+# ==================== LLM 调用配置 ====================
+LLM_MAX_TOKENS = 2000
+LLM_TEMPERATURE = 0.8
+LLM_NORMAL_TIMEOUT = 90.0
+LLM_THINKING_TIMEOUT = 180.0
+LLM_THINKING_MODEL_KEYWORDS = ["thinking", "think", "reason"]
+
+# ==================== 提示词长度控制 ====================
+MAX_PROMPT_LENGTH = 12000
+MAX_SPEECH_HISTORY_LENGTH = 3000
+MAX_DEATH_TIMELINE_LENGTH = 1000
+MAX_VOTE_HISTORY_LENGTH = 1500
+
+# ==================== 响应解析常量 ====================
+RESPONSE_CONTENT_MAX_PREVIEW = 300
+RESPONSE_ERROR_PREVIEW = 100
+RESPONSE_HTTP_ERROR_PREVIEW = 300

@@ -1,0 +1,622 @@
+/* ============================================================ */
+/* AI WEREWOLF — Custom Animations                              */
+/* Dark Fantasy Card Edition                                   */
+/* ============================================================ */
+
+/* ====== 1. ROLE AVATAR LABEL ====== */
+.seat .player-role-label {
+    font-size: 0.6rem;
+    color: #d4a830;
+    text-align: center;
+    margin-top: 2px;
+    text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+    white-space: nowrap;
+    opacity: 0.8;
+}
+
+/* ====== 2. NIGHT ACTION GLOWS (Different colors per role) ====== */
+
+@keyframes nightGlowWerewolf {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(220, 38, 38, 0.6), 0 0 20px rgba(220, 38, 38, 0.3);
+        border-color: #dc2626;
+    }
+    50% {
+        box-shadow: 0 0 22px rgba(220, 38, 38, 0.9), 0 0 44px rgba(220, 38, 38, 0.5);
+        border-color: #ef4444;
+    }
+}
+
+@keyframes nightGlowSeer {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(6, 182, 212, 0.6), 0 0 20px rgba(6, 182, 212, 0.3);
+        border-color: #06b6d4;
+    }
+    50% {
+        box-shadow: 0 0 22px rgba(6, 182, 212, 0.9), 0 0 44px rgba(6, 182, 212, 0.5);
+        border-color: #22d3ee;
+    }
+}
+
+@keyframes nightGlowWitch {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(168, 85, 247, 0.6), 0 0 20px rgba(168, 85, 247, 0.3);
+        border-color: #a855f7;
+    }
+    50% {
+        box-shadow: 0 0 22px rgba(168, 85, 247, 0.9), 0 0 44px rgba(168, 85, 247, 0.5);
+        border-color: #c084fc;
+    }
+}
+
+@keyframes nightGlowGuard {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(251, 191, 36, 0.6), 0 0 20px rgba(251, 191, 36, 0.3);
+        border-color: #fbbf24;
+    }
+    50% {
+        box-shadow: 0 0 22px rgba(251, 191, 36, 0.9), 0 0 44px rgba(251, 191, 36, 0.5);
+        border-color: #fcd34d;
+    }
+}
+
+@keyframes nightGlowHunter {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(249, 115, 22, 0.6), 0 0 20px rgba(249, 115, 22, 0.3);
+        border-color: #f97316;
+    }
+    50% {
+        box-shadow: 0 0 22px rgba(249, 115, 22, 0.9), 0 0 44px rgba(249, 115, 22, 0.5);
+        border-color: #fb923c;
+    }
+}
+
+/* Day speaker glow (gold, same for all) */
+@keyframes daySpeakerGlow {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(212, 168, 48, 0.5), 0 0 20px rgba(212, 168, 48, 0.25);
+        border-color: #d4a830;
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(212, 168, 48, 0.8), 0 0 40px rgba(212, 168, 48, 0.4);
+        border-color: #f5cc5a;
+    }
+}
+
+/* Apply night glows */
+.seat.night-werewolf-active .avatar-wrapper {
+    animation: nightGlowWerewolf 1.5s ease-in-out infinite;
+    border-width: 3px;
+    border-style: solid;
+    border-radius: 9999px;
+}
+
+.seat.night-seer-active .avatar-wrapper {
+    animation: nightGlowSeer 1.5s ease-in-out infinite;
+    border-width: 3px;
+    border-style: solid;
+    border-radius: 9999px;
+}
+
+.seat.night-witch-active .avatar-wrapper {
+    animation: nightGlowWitch 1.5s ease-in-out infinite;
+    border-width: 3px;
+    border-style: solid;
+    border-radius: 9999px;
+}
+
+.seat.night-guard-active .avatar-wrapper {
+    animation: nightGlowGuard 1.5s ease-in-out infinite;
+    border-width: 3px;
+    border-style: solid;
+    border-radius: 9999px;
+}
+
+.seat.night-hunter-active .avatar-wrapper {
+    animation: nightGlowHunter 1.5s ease-in-out infinite;
+    border-width: 3px;
+    border-style: solid;
+    border-radius: 9999px;
+}
+
+/* Day active speaker */
+.seat.seat-active .avatar-wrapper,
+.seat.seat-speaking .avatar-wrapper {
+    animation: daySpeakerGlow 1.5s ease-in-out infinite;
+    border-width: 3px;
+    border-style: solid;
+    border-radius: 9999px;
+}
+
+/* Night action target highlight */
+.seat.seat-night-target .avatar-wrapper {
+    animation: nightGlowWerewolf 1.2s ease-in-out infinite;
+    border-width: 3px;
+    border-style: solid;
+    border-radius: 9999px;
+    border-color: #ef4444;
+    box-shadow: 0 0 18px rgba(239, 68, 68, 0.7), 0 0 36px rgba(239, 68, 68, 0.35);
+}
+
+/* Vote target highlight */
+.seat.seat-vote-target .avatar-wrapper {
+    animation: daySpeakerGlow 1.5s ease-in-out infinite;
+    border-width: 3px;
+    border-style: solid;
+    border-radius: 9999px;
+    border-color: #4a90d9;
+    box-shadow: 0 0 14px rgba(74, 144, 217, 0.6), 0 0 28px rgba(74, 144, 217, 0.3);
+}
+
+.seat.seat-voting .avatar-wrapper {
+    border-color: #4a90d9;
+    box-shadow:
+        0 0 12px rgba(74, 144, 217, 0.5),
+        0 0 24px rgba(74, 144, 217, 0.25);
+    border-width: 2px;
+    border-style: solid;
+    border-radius: 9999px;
+}
+
+/* ====== 3. ACTION CONNECTION LINES ====== */
+#action-connections {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 15;
+}
+
+.action-line {
+    position: absolute;
+    height: 2px;
+    transform-origin: 0 50%;
+    z-index: 15;
+    border-radius: 2px;
+    opacity: 0;
+}
+
+@keyframes lineGrowForward {
+    0% { width: 0; opacity: 1; }
+    100% { opacity: 1; }
+}
+
+@keyframes lineGrowReverse {
+    0% { opacity: 1; }
+    100% { width: 0; opacity: 0; }
+}
+
+.action-line.werewolf {
+    background: linear-gradient(90deg, rgba(220, 38, 38, 0.9), rgba(220, 38, 38, 0.2));
+    box-shadow: 0 0 8px rgba(220, 38, 38, 0.7), 0 0 16px rgba(220, 38, 38, 0.4);
+}
+
+.action-line.seer {
+    background: linear-gradient(90deg, rgba(6, 182, 212, 0.9), rgba(6, 182, 212, 0.2));
+    box-shadow: 0 0 8px rgba(6, 182, 212, 0.7), 0 0 16px rgba(6, 182, 212, 0.4);
+}
+
+.action-line.witch-heal {
+    background: linear-gradient(90deg, rgba(34, 197, 94, 0.9), rgba(34, 197, 94, 0.2));
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.7), 0 0 16px rgba(34, 197, 94, 0.4);
+}
+
+.action-line.witch-poison {
+    background: linear-gradient(90deg, rgba(168, 85, 247, 0.9), rgba(168, 85, 247, 0.2));
+    box-shadow: 0 0 8px rgba(168, 85, 247, 0.7), 0 0 16px rgba(168, 85, 247, 0.4);
+}
+
+.action-line.guard {
+    background: linear-gradient(90deg, rgba(251, 191, 36, 0.9), rgba(251, 191, 36, 0.2));
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.7), 0 0 16px rgba(251, 191, 36, 0.4);
+}
+
+.action-line.hunter {
+    background: linear-gradient(90deg, rgba(249, 115, 22, 0.9), rgba(249, 115, 22, 0.2));
+    box-shadow: 0 0 8px rgba(249, 115, 22, 0.7), 0 0 16px rgba(249, 115, 22, 0.4);
+}
+
+/* Action particles */
+.action-particle {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    z-index: 16;
+    pointer-events: none;
+    background: rgba(212, 168, 48, 0.8);
+    box-shadow: 0 0 6px rgba(212, 168, 48, 0.6);
+}
+
+.action-particle.werewolf {
+    background: rgba(220, 38, 38, 0.9);
+    box-shadow: 0 0 8px rgba(220, 38, 38, 0.7);
+}
+
+.action-particle.seer {
+    background: rgba(6, 182, 212, 0.9);
+    box-shadow: 0 0 8px rgba(6, 182, 212, 0.7);
+}
+
+.action-particle.witch-heal {
+    background: rgba(34, 197, 94, 0.9);
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.7);
+}
+
+.action-particle.witch-poison {
+    background: rgba(168, 85, 247, 0.9);
+    box-shadow: 0 0 8px rgba(168, 85, 247, 0.7);
+}
+
+.action-particle.guard {
+    background: rgba(251, 191, 36, 0.9);
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.7);
+}
+
+.action-particle.hunter {
+    background: rgba(249, 115, 22, 0.9);
+    box-shadow: 0 0 8px rgba(249, 115, 22, 0.7);
+}
+
+@keyframes particleMove {
+    0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(var(--tx), var(--ty)) scale(0.2);
+        opacity: 0;
+    }
+}
+
+/* ====== 4. DEAD STATE ====== */
+.seat.seat-dead .avatar-wrapper {
+    filter: grayscale(100%) brightness(0.35);
+    opacity: 0.55;
+}
+
+.seat.seat-dead .player-name {
+    color: #555;
+    text-decoration: line-through;
+}
+
+.seat.seat-dead .player-role-label {
+    color: #444;
+}
+
+.seat.seat-dead::after {
+    content: '已死亡';
+    position: absolute;
+    bottom: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.55rem;
+    color: #8b1a1a;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 1px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+    z-index: 5;
+    border: 1px solid rgba(139, 26, 26, 0.2);
+}
+
+/* Remove old death icons */
+.seat .death-icon,
+.seat .skull-icon,
+.seat [class*="skull"],
+.seat [class*="death"] {
+    display: none !important;
+}
+
+/* ====== 5. EULOGY OVERLAY ====== */
+.eulogy-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle, rgba(7, 8, 14, 0.92) 0%, rgba(4, 5, 10, 0.97) 100%);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border-radius: inherit;
+}
+
+.eulogy-overlay.hidden {
+    display: none !important;
+}
+
+.eulogy-content {
+    text-align: center;
+    animation: eulogyFadeIn 0.8s ease-out;
+}
+
+.eulogy-title {
+    font-family: 'Cinzel', serif;
+    font-size: 2rem;
+    color: #bf2424;
+    text-shadow: 0 0 30px rgba(139, 26, 26, 0.6);
+    margin-bottom: 0.75rem;
+    letter-spacing: 0.2em;
+}
+
+.eulogy-player {
+    font-family: 'Cinzel', serif;
+    font-size: 1.25rem;
+    color: #d4a830;
+    margin-bottom: 0.5rem;
+}
+
+.eulogy-hint {
+    font-size: 0.85rem;
+    color: #666;
+    animation: eulogyPulse 2s ease-in-out infinite;
+}
+
+@keyframes eulogyFadeIn {
+    0% { opacity: 0; transform: scale(0.85); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes eulogyPulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+}
+
+/* ====== 6. SEAT BASE ====== */
+.seat {
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.seat .avatar-wrapper {
+    transition: all 0.4s ease;
+    overflow: hidden;
+}
+
+.seat:hover {
+    transform: translate(-50%, -50%) scale(1.12);
+    z-index: 20;
+}
+
+/* ====== 7. NIGHT MODE DIM ====== */
+#seats-container.night-mode .seat:not(.night-werewolf-active):not(.night-seer-active):not(.night-witch-active):not(.night-guard-active):not(.night-hunter-active):not(.seat-active):not(.seat-speaking):not(.seat-night-target) .avatar-wrapper {
+    filter: brightness(0.4);
+    opacity: 0.6;
+}
+
+/* ====== 8. CENTER BANNER ====== */
+.center-banner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(145deg, rgba(12, 14, 24, 0.95), rgba(8, 10, 16, 0.98));
+    border: 1.5px solid rgba(139, 26, 26, 0.4);
+    border-radius: 16px;
+    padding: 24px 48px;
+    text-align: center;
+    z-index: 25;
+    animation: bannerFadeIn 0.5s ease forwards;
+    box-shadow:
+        0 10px 40px rgba(0, 0, 0, 0.6),
+        0 0 30px rgba(139, 26, 26, 0.2);
+}
+
+.center-banner h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.6rem;
+    color: #d4a830;
+    margin-bottom: 6px;
+    text-shadow: 0 0 10px rgba(212, 168, 48, 0.4);
+    letter-spacing: 0.1em;
+}
+
+.center-banner p {
+    font-size: 0.9rem;
+    color: #d0d0d0;
+}
+
+.center-banner.kill-banner {
+    border-color: rgba(139, 26, 26, 0.5);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), 0 0 40px rgba(139, 26, 26, 0.25);
+}
+
+.center-banner.dawn-banner {
+    border-color: rgba(212, 168, 48, 0.4);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), 0 0 40px rgba(212, 168, 48, 0.15);
+}
+
+.center-banner.vote-banner {
+    border-color: rgba(74, 144, 217, 0.4);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), 0 0 40px rgba(74, 144, 217, 0.15);
+}
+
+@keyframes bannerFadeIn {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+    100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes bannerFadeOut {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+}
+
+/* ====== 9. KILL SHAKE ====== */
+@keyframes killShake {
+    0%, 100% { transform: translate(-50%, -50%) translateX(0); }
+    10% { transform: translate(-50%, -50%) translateX(-8px) rotate(-3deg); }
+    20% { transform: translate(-50%, -50%) translateX(8px) rotate(3deg); }
+    30% { transform: translate(-50%, -50%) translateX(-6px) rotate(-2deg); }
+    40% { transform: translate(-50%, -50%) translateX(6px) rotate(2deg); }
+    50% { transform: translate(-50%, -50%) translateX(-4px) rotate(-1deg); }
+    60% { transform: translate(-50%, -50%) translateX(4px) rotate(1deg); }
+    70% { transform: translate(-50%, -50%) translateX(-2px); }
+    80% { transform: translate(-50%, -50%) translateX(2px); }
+    90% { transform: translate(-50%, -50%) translateX(-1px); }
+}
+
+.seat.kill-target {
+    animation: killShake 0.5s ease-in-out;
+}
+
+/* ====== 10. FLOAT ANIMATION ====== */
+@keyframes float {
+    0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+    50% { transform: translate(-50%, -50%) translateY(-10px); }
+}
+
+/* ====== 11. SHIMMER ====== */
+@keyframes shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+}
+
+/* ====== 12. FADE IN UP ====== */
+@keyframes fadeInUp {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ====== 13. BORDER GLOW ====== */
+@keyframes borderGlow {
+    0%, 100% { border-color: rgba(212, 168, 48, 0.3); }
+    50% { border-color: rgba(212, 168, 48, 0.7); }
+}
+
+/* ====== 14. PARTICLE FLOAT ====== */
+@keyframes particleFloat {
+    0%, 100% {
+        transform: translateY(0) translateX(0);
+        opacity: 0.4;
+    }
+    33% {
+        transform: translateY(-15px) translateX(5px);
+        opacity: 0.8;
+    }
+    66% {
+        transform: translateY(-5px) translateX(-5px);
+        opacity: 0.6;
+    }
+}
+
+/* ====== 15. TRANSITION OVERLAY ====== */
+#transitionOverlay {
+    transition: opacity 0.4s ease;
+}
+
+#transitionOverlay .transition-text {
+    font-family: 'Cinzel', serif;
+    animation: fadeInUp 0.5s ease-out;
+    text-shadow: 0 0 30px rgba(212, 168, 48, 0.5), 0 0 60px rgba(212, 168, 48, 0.2);
+    letter-spacing: 0.15em;
+}
+
+/* ====== 16. CINEMATIC TRANSITIONS ====== */
+
+/* 预言家查验结果标记动画 */
+@keyframes resultMarkPop {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.3);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* 头像裂痕效果 */
+.crack-overlay {
+    animation: crackAppear 0.3s ease-out;
+}
+
+@keyframes crackAppear {
+    0% {
+        opacity: 0;
+        transform: scale(1.1);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* 电影感文字闪烁 */
+@keyframes cinematicTextFlicker {
+    0%, 100% {
+        opacity: 1;
+        text-shadow: 0 0 30px rgba(212, 168, 48, 0.5), 0 0 60px rgba(212, 168, 48, 0.2);
+    }
+    50% {
+        opacity: 0.95;
+        text-shadow: 0 0 40px rgba(212, 168, 48, 0.6), 0 0 80px rgba(212, 168, 48, 0.3);
+    }
+}
+
+.cinematic-main-text {
+    animation: cinematicTextFlicker 2s ease-in-out infinite;
+}
+
+/* ====== 17. SKILL EFFECTS ====== */
+
+/* 技能特效容器 */
+#skill-effects-container {
+    will-change: transform;
+}
+
+/* 狼人击杀后的头像效果 */
+.seat.werewolf-killed .avatar-wrapper {
+    filter: grayscale(0.8) brightness(0.6);
+    transition: filter 0.5s ease;
+}
+
+/* 预言家查验结果标记 */
+.seer-result-mark {
+    animation: resultMarkPop 0.5s ease-out;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+/* 守卫护盾脉冲 */
+@keyframes shieldPulse {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(212, 168, 48, 0.4), inset 0 0 20px rgba(212, 168, 48, 0.2);
+    }
+    50% {
+        box-shadow: 0 0 40px rgba(212, 168, 48, 0.6), inset 0 0 30px rgba(212, 168, 48, 0.3);
+    }
+}
+
+.seat.shield-protected .avatar-wrapper {
+    animation: shieldPulse 1.5s ease-in-out infinite;
+    border: 2px solid rgba(212, 168, 48, 0.6);
+}
+
+/* ====== 18. PERFORMANCE OPTIMIZATIONS ====== */
+
+/* 使用GPU加速的动画元素 */
+.scene-bg-layer,
+#scene-canvas-overlay,
+#cinematic-canvas,
+#skill-effects-canvas {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+/* 减少重绘 */
+#scene-background-container,
+#cinematic-container,
+#skill-effects-container {
+    contain: layout style paint;
+}
+
+/* 场景背景图片预加载优化 */
+.scene-bg-layer {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+}

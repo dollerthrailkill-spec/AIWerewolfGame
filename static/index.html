@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 狼人杀 — 暗黑奇幻版</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+
+    <!-- Google Fonts: Cinzel + Noto Sans SC -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS (本地构建) -->
+    <link rel="stylesheet" href="/static/css/style.css">
+
+    <!-- Custom Styles -->
+    <link href="/static/css/custom-style.css" rel="stylesheet">
+    <link href="/static/css/custom-animations.css" rel="stylesheet">
+</head>
+<body class="font-noto-sans text-gray-100 min-h-screen overflow-x-hidden selection:bg-gold-500/30">
+
+    <!-- ====== Particle Background ====== -->
+    <div id="particles-container" class="fixed inset-0 z-0 pointer-events-none">
+        <div class="particle particle-1"></div>
+        <div class="particle particle-2"></div>
+        <div class="particle particle-3"></div>
+        <div class="particle particle-4"></div>
+        <div class="particle particle-5"></div>
+        <div class="particle particle-6"></div>
+        <div class="particle particle-7"></div>
+        <div class="particle particle-8"></div>
+        <div class="particle particle-9"></div>
+        <div class="particle particle-10"></div>
+        <div class="particle particle-11"></div>
+        <div class="particle particle-12"></div>
+    </div>
+
+    <!-- Grain Overlay -->
+    <div class="grain-overlay fixed inset-0 z-0 pointer-events-none"></div>
+
+    <!-- ====== Transition Overlay ====== -->
+    <div id="transitionOverlay" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="modal-overlay absolute inset-0"></div>
+        <div class="relative text-center">
+            <div class="transition-text font-cinzel text-3xl md:text-5xl text-gold-400 tracking-widest"></div>
+        </div>
+    </div>
+
+    <!-- ====== Audio Elements ====== -->
+    <audio id="bgm" src="/static/audio/bgm.wav" preload="none"></audio>
+    <audio id="button-click" src="/static/audio/button-click.wav" preload="none"></audio>
+    <audio id="seat-sound" src="/static/audio/seat.wav" preload="none"></audio>
+    <audio id="night-sound" src="/static/audio/night.wav" preload="none"></audio>
+    <audio id="werewolf-sound" src="/static/audio/werewolf.wav" preload="none"></audio>
+    <audio id="seer-sound" src="/static/audio/seer.wav" preload="none"></audio>
+    <audio id="witch-sound" src="/static/audio/witch.wav" preload="none"></audio>
+    <audio id="guard-sound" src="/static/audio/witch.wav" preload="none"></audio>
+    <audio id="day-sound" src="/static/audio/day.wav" preload="none"></audio>
+    <audio id="vote-sound" src="/static/audio/vote.wav" preload="none"></audio>
+    <audio id="win-sound" src="/static/audio/win.wav" preload="none"></audio>
+    <audio id="lose-sound" src="/static/audio/lose.wav" preload="none"></audio>
+    <audio id="mvp-sound" src="/static/audio/mvp.wav" preload="none"></audio>
+
+    <!-- ============================================================ -->
+    <!-- HOME PAGE -->
+    <!-- ============================================================ -->
+    <div id="home-page" class="relative z-10 min-h-screen flex flex-col">
+
+        <!-- Top Navigation Bar -->
+        <nav class="nav-bar relative z-20 flex items-center justify-between px-6 py-4 lg:px-12">
+            <!-- Logo -->
+            <div class="nav-logo flex items-center gap-3">
+                <div class="logo-icon w-10 h-10 rounded-full border-2 border-gold-500/50 flex items-center justify-center shadow-gold-glow">
+                    <span class="text-xl">🐺</span>
+                </div>
+                <span class="font-cinzel text-xl font-bold text-gold-400 tracking-widest hidden sm:block">WEREWOLF</span>
+            </div>
+            <!-- Right Buttons -->
+            <div class="nav-actions flex items-center gap-3">
+                <button id="exam-btn" class="nav-btn group flex items-center gap-2" title="模型考试">
+                    <span class="nav-btn-icon">📜</span>
+                    <span class="nav-btn-text hidden sm:inline">模型考试</span>
+                </button>
+                <button id="settings-btn" class="nav-btn group flex items-center gap-2" title="设置">
+                    <span class="nav-btn-icon">⚙️</span>
+                    <span class="nav-btn-text hidden sm:inline">设置</span>
+                </button>
+                <button id="exit-btn" class="nav-btn group flex items-center gap-2" title="退出游戏">
+                    <span class="nav-btn-icon">🚪</span>
+                    <span class="nav-btn-text hidden sm:inline">退出</span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 flex flex-col items-center justify-center px-4 py-8">
+
+            <!-- Title Section -->
+            <div class="title-section text-center mb-12 animate-fade-in-up">
+                <h1 class="game-title font-cinzel text-5xl md:text-7xl lg:text-8xl font-bold tracking-wider mb-4">
+                    AI 狼人杀
+                </h1>
+                <p class="game-subtitle font-noto-sans text-base md:text-lg text-gray-400 tracking-widest uppercase">
+                    Dark Fantasy Card Edition
+                </p>
+                <div class="title-divider mt-6 mx-auto"></div>
+            </div>
+
+            <!-- Game Mode Selection -->
+            <div class="mode-section mb-12 animate-fade-in-up" style="animation-delay: 0.15s;">
+                <h2 class="section-label font-cinzel text-sm text-gold-500/70 tracking-[0.3em] text-center mb-6 uppercase">
+                    Select Game Mode
+                </h2>
+                <div class="mode-cards flex flex-wrap justify-center gap-4 md:gap-6">
+                    <button class="mode-card game-mode-btn group" data-mode="6">
+                        <div class="mode-card-inner">
+                            <span class="mode-number font-cinzel text-3xl font-bold">6</span>
+                            <span class="mode-label text-xs text-gray-400 tracking-wider mt-1">人局</span>
+                        </div>
+                    </button>
+                    <button class="mode-card game-mode-btn group" data-mode="8">
+                        <div class="mode-card-inner">
+                            <span class="mode-number font-cinzel text-3xl font-bold">8</span>
+                            <span class="mode-label text-xs text-gray-400 tracking-wider mt-1">人局</span>
+                        </div>
+                    </button>
+                    <button class="mode-card game-mode-btn group" data-mode="10">
+                        <div class="mode-card-inner">
+                            <span class="mode-number font-cinzel text-3xl font-bold">10</span>
+                            <span class="mode-label text-xs text-gray-400 tracking-wider mt-1">人局</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Start Button -->
+            <div class="start-section mb-12 animate-fade-in-up" style="animation-delay: 0.3s;">
+                <button id="start-game-btn" class="start-btn group relative" disabled>
+                    <span class="start-btn-content font-cinzel text-lg md:text-xl tracking-[0.2em] font-semibold">
+                        开始游戏
+                    </span>
+                </button>
+            </div>
+
+            <!-- Function Cards Row -->
+            <div class="function-section flex flex-wrap justify-center gap-4 animate-fade-in-up" style="animation-delay: 0.45s;">
+                <button class="func-card group" id="leaderboard-btn">
+                    <div class="func-card-inner flex items-center gap-3">
+                        <span class="func-icon text-2xl">🏆</span>
+                        <div class="text-left">
+                            <div class="func-label font-cinzel text-sm tracking-wider">排行榜</div>
+                            <div class="func-desc text-xs text-gray-500">Leaderboard</div>
+                        </div>
+                    </div>
+                </button>
+                <button class="func-card group" id="data-center-btn">
+                    <div class="func-card-inner flex items-center gap-3">
+                        <span class="func-icon text-2xl">📊</span>
+                        <div class="text-left">
+                            <div class="func-label font-cinzel text-sm tracking-wider">数据中心</div>
+                            <div class="func-desc text-xs text-gray-500">Data Center</div>
+                        </div>
+                    </div>
+                </button>
+                <button class="func-card group" id="achievements-btn">
+                    <div class="func-card-inner flex items-center gap-3">
+                        <span class="func-icon text-2xl">🎖️</span>
+                        <div class="text-left">
+                            <div class="func-label font-cinzel text-sm tracking-wider">成就系统</div>
+                            <div class="func-desc text-xs text-gray-500">Achievements</div>
+                        </div>
+                    </div>
+                </button>
+                <button class="func-card group" id="daily-challenge-btn">
+                    <div class="func-card-inner flex items-center gap-3">
+                        <span class="func-icon text-2xl">⚔️</span>
+                        <div class="text-left">
+                            <div class="func-label font-cinzel text-sm tracking-wider">每日挑战</div>
+                            <div class="func-desc text-xs text-gray-500">Daily Challenge</div>
+                        </div>
+                    </div>
+                </button>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="relative z-10 text-center py-4">
+            <p class="text-xs text-gray-600 tracking-wider">&copy; 2026 AI Werewolf &mdash; Dark Fantasy Edition</p>
+        </footer>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- GAME PAGE -->
+    <!-- ============================================================ -->
+    <div id="game-page" class="relative z-10 min-h-screen flex flex-col hidden">
+
+        <!-- Top Bar -->
+        <div class="game-topbar relative flex justify-between items-center px-4 lg:px-8 py-3 z-30">
+            <button id="return-home-btn" class="game-topbar-btn group flex items-center gap-2" title="返回">
+                <span class="text-sm">←</span>
+                <span class="hidden sm:inline text-sm tracking-wider font-cinzel">返回</span>
+            </button>
+
+            <div class="game-stage text-center">
+                <div class="text-[10px] text-gray-500 tracking-[0.2em] uppercase">Current Stage</div>
+                <div id="current-step" class="font-cinzel text-gold-400 text-sm md:text-base tracking-wider">准备中</div>
+            </div>
+
+            <div class="game-topbar-right flex items-center gap-3">
+                <button id="pause-btn" class="game-topbar-btn group flex items-center gap-2" style="display:none" title="暂停">
+                    <span class="text-sm">⏸</span>
+                    <span class="hidden sm:inline text-sm tracking-wider font-cinzel">暂停</span>
+                </button>
+                <button id="restart-game-btn" class="game-topbar-btn group flex items-center gap-2" title="重新开始">
+                    <span class="text-sm">↺</span>
+                    <span class="hidden sm:inline text-sm tracking-wider font-cinzel">重新开始</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-bar-container w-full h-1 bg-dark-700 relative z-20">
+            <div class="progress-bar-fill h-full"></div>
+        </div>
+
+        <!-- Game Area -->
+        <div class="game-area flex-1 relative flex items-center justify-center">
+            <!-- Ambient Glow Circle -->
+            <div class="game-ambient-glow absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div class="ambient-circle"></div>
+            </div>
+
+            <!-- Seats Container (Circular) -->
+            <div id="seats-container" class="seats-ring relative">
+                <!-- Action Connections Layer -->
+                <div id="action-connections" class="absolute inset-0 pointer-events-none"></div>
+
+                <!-- Center Info -->
+                <div id="center-info" class="seats-center absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div class="text-center">
+                        <div id="center-text" class="font-cinzel text-3xl md:text-5xl text-gold-400 tracking-wider opacity-0 text-shadow-gold"></div>
+                    </div>
+                </div>
+
+                <!-- Eulogy Overlay -->
+                <div id="eulogy-overlay" class="eulogy-overlay hidden">
+                    <div class="eulogy-content">
+                        <div class="eulogy-icon text-5xl mb-4">💀</div>
+                        <div class="eulogy-title font-cinzel text-2xl md:text-3xl tracking-wider mb-3">遗言时刻</div>
+                        <div class="eulogy-player font-cinzel text-lg text-gold-400" id="eulogy-player-name"></div>
+                        <div class="euloy-hint text-sm text-gray-500 mt-2">这位玩家正在发表最后的遗言...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Speech Area -->
+            <div id="speech-area" class="absolute inset-0 hidden z-10">
+            <!-- Character Sprite - Center -->
+            <div id="speaker-sprite-container" class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <img id="speaker-sprite" src="" alt="角色立绘" class="character-sprite">
+            </div>
+
+                <!-- Dialogue Box - Bottom -->
+                <div class="absolute bottom-0 left-0 right-0 speech-sheet-inner">
+                    <div class="dialogue-box">
+                        <div class="speaker-name-box">
+                            <img id="speaker-icon" src="" alt="发言者图标" class="speaker-icon">
+                            <span id="speaker-name" class="font-cinzel text-gold-400 text-sm md:text-base tracking-wider"></span>
+                            <span id="speaker-role" class="text-xs text-gray-400 tracking-wider ml-2"></span>
+                        </div>
+                        <div class="speech-text-area">
+                            <p id="speech-text" class="text-gray-200 text-sm md:text-base leading-relaxed"></p>
+                        </div>
+                        <div class="speech-controls flex justify-between items-center mt-4">
+                            <button id="auto-play-btn" class="speech-btn text-sm">
+                                <span class="mr-1">▶</span> 自动播放
+                            </button>
+                            <button id="next-speech-btn" class="speech-btn-primary text-sm">
+                                下一位 <span class="ml-1">→</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Voting Area (Bottom Sheet) -->
+            <div id="voting-area" class="voting-sheet absolute bottom-0 left-0 right-0 hidden">
+                <div class="voting-sheet-inner">
+                    <h3 class="font-cinzel text-xl text-gold-400 text-center tracking-[0.2em] mb-4 pt-4">投票放逐</h3>
+                    <div id="voting-players" class="flex flex-wrap justify-center gap-3 px-4 pb-4"></div>
+                    <div class="text-center pb-6">
+                        <button id="submit-vote-btn" class="voting-submit-btn font-cinzel text-sm tracking-wider">
+                            确认投票
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Info Bar -->
+        <div class="game-infobar relative text-center py-3 z-10">
+            <div id="game-info" class="game-info-pill inline-block px-6 py-2 rounded-full text-sm text-gray-300 tracking-wider">
+                等待游戏开始...
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- SETTINGS MODAL -->
+    <!-- ============================================================ -->
+    <div id="settings-modal" class="modal-wrapper fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="modal-overlay absolute inset-0" onclick="toggleSettingsModal()"></div>
+        <div class="modal-container relative w-full max-w-3xl max-h-[90vh] mx-4">
+            <!-- Close Button -->
+            <button class="modal-close absolute -top-3 -right-3 z-10 w-10 h-10 rounded-full flex items-center justify-center border border-gold-500/30 text-gray-400 hover:text-gold-400 transition-colors" onclick="toggleSettingsModal()">
+                <span class="text-lg">✕</span>
+            </button>
+
+            <div class="modal-card rounded-xl border border-gold-500/20 overflow-hidden">
+                <!-- Header -->
+                <div class="modal-header px-6 py-5 border-b border-gold-500/10">
+                    <h2 class="font-cinzel text-xl md:text-2xl text-gold-400 tracking-[0.15em] text-center">设置</h2>
+                </div>
+
+                <!-- Tabs -->
+                <div class="modal-tabs flex border-b border-gold-500/10">
+                    <button class="settings-tab flex-1 py-3 px-4 font-cinzel text-sm tracking-wider text-gold-400 border-b-2 border-gold-400" data-tab="api">
+                        API 配置
+                    </button>
+                    <button class="settings-tab flex-1 py-3 px-4 font-cinzel text-sm tracking-wider text-gray-500 border-b-2 border-transparent hover:text-gold-400 transition-colors" data-tab="models">
+                        模型库
+                    </button>
+                    <button class="settings-tab flex-1 py-3 px-4 font-cinzel text-sm tracking-wider text-gray-500 border-b-2 border-transparent hover:text-gold-400 transition-colors" data-tab="roles">
+                        角色管理
+                    </button>
+                    <button class="settings-tab flex-1 py-3 px-4 font-cinzel text-sm tracking-wider text-gray-500 border-b-2 border-transparent hover:text-gold-400 transition-colors" data-tab="theme">
+                        主题设置
+                    </button>
+                    <button class="settings-tab flex-1 py-3 px-4 font-cinzel text-sm tracking-wider text-gray-500 border-b-2 border-transparent hover:text-gold-400 transition-colors" data-tab="sound">
+                        音效设置
+                    </button>
+                </div>
+
+                <!-- Content -->
+                <div class="modal-body p-6 max-h-[60vh] overflow-y-auto">
+                    <!-- API Config Tab -->
+                    <div id="api-config" class="settings-content">
+                        <div id="providers-container" class="mb-4">
+                            <div class="provider-form mb-6 p-5 rounded-lg border border-gold-500/15 relative">
+                                <button class="delete-provider-btn absolute top-3 right-3 text-gray-500 hover:text-blood-400 transition-colors" data-id="">
+                                    <span class="text-sm">✕</span>
+                                </button>
+
+                                <div class="mb-4">
+                                    <label class="block text-gray-300 text-sm mb-2 tracking-wider">供应商名称</label>
+                                    <input type="text" class="provider-name dark-input w-full rounded-lg px-4 py-2.5 text-sm" placeholder="例如: OpenAI">
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="block text-gray-300 text-sm mb-2 tracking-wider">API Key</label>
+                                    <div class="relative">
+                                        <input type="password" class="provider-key dark-input w-full rounded-lg px-4 py-2.5 text-sm pr-12" placeholder="输入API密钥">
+                                        <button type="button" class="toggle-password-btn absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gold-400 transition-colors">
+                                            <i class="fa fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="block text-gray-300 text-sm mb-2 tracking-wider">API Base URL</label>
+                                    <input type="text" class="provider-url dark-input w-full rounded-lg px-4 py-2.5 text-sm" placeholder="例如: https://api.openai.com/v1">
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="block text-gray-300 text-sm mb-2 tracking-wider">模型名称</label>
+                                    <input type="text" class="provider-model dark-input w-full rounded-lg px-4 py-2.5 text-sm" placeholder="例如：gpt-4">
+                                </div>
+                            </div>
+                        </div>
+
+                        <button id="add-provider-btn" class="w-full py-3 rounded-lg border border-dashed border-gold-500/25 text-gold-500/60 hover:text-gold-400 hover:border-gold-500/50 transition-all text-sm tracking-wider mb-4">
+                            + 添加模型供应商
+                        </button>
+
+                        <button id="save-api-btn" class="w-full py-3 rounded-lg gold-btn font-cinzel text-sm tracking-wider">
+                            保存所有配置
+                        </button>
+
+                        <div id="api-status" class="mt-4 text-center text-sm hidden"></div>
+                    </div>
+
+                    <!-- Models Library Tab -->
+                    <div id="models-library" class="settings-content hidden">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="font-cinzel text-sm text-gold-500/70 tracking-[0.2em]">全局模型库管理</h3>
+                            <div class="flex items-center gap-2">
+                                <input type="text" id="model-search-input" placeholder="搜索模型..." class="dark-input rounded-lg px-3 py-1.5 text-sm w-48">
+                                <select id="model-filter-provider" class="dark-input rounded-lg px-3 py-1.5 text-sm">
+                                    <option value="">全部供应商</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="models-list-container" class="space-y-2">
+                            <!-- 模型列表由 JS 动态渲染 -->
+                        </div>
+                        <div id="models-empty-tip" class="text-center text-gray-500 text-sm py-8 hidden">
+                            暂无模型，请先在 API 配置中添加供应商和模型
+                        </div>
+                    </div>
+
+                    <!-- Roles Management Tab -->
+                    <div id="roles-management" class="settings-content hidden">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="roles-grid"></div>
+                    </div>
+
+                    <!-- Theme Tab -->
+                    <div id="theme-settings" class="settings-content hidden">
+                        <h3 class="font-cinzel text-sm text-gold-500/70 tracking-[0.2em] mb-4">选择主题风格</h3>
+                        <div id="theme-selector" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
+                    </div>
+
+                    <!-- Sound Tab -->
+                    <div id="sound-settings" class="settings-content hidden">
+                        <h3 class="font-cinzel text-sm text-gold-500/70 tracking-[0.2em] mb-4">音效设置</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between p-3 rounded-lg border border-gold-500/10">
+                                <div>
+                                    <div class="text-sm text-gray-300">背景音乐</div>
+                                    <div class="text-xs text-gray-500">游戏开始时的背景音乐</div>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="toggle-bgm" class="sr-only peer" checked>
+                                    <div class="w-11 h-6 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold-500/50 peer-checked:after:bg-gold-400"></div>
+                                </label>
+                            </div>
+                            <div class="flex items-center justify-between p-3 rounded-lg border border-gold-500/10">
+                                <div>
+                                    <div class="text-sm text-gray-300">音效</div>
+                                    <div class="text-xs text-gray-500">按钮点击、投票等音效</div>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="toggle-sfx" class="sr-only peer" checked>
+                                    <div class="w-11 h-6 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold-500/50 peer-checked:after:bg-gold-400"></div>
+                                </label>
+                            </div>
+                            <div class="flex items-center justify-between p-3 rounded-lg border border-gold-500/10">
+                                <div>
+                                    <div class="text-sm text-gray-300">语音播放</div>
+                                    <div class="text-xs text-gray-500">AI 角色发言时播放语音</div>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="toggle-voice" class="sr-only peer" checked>
+                                    <div class="w-11 h-6 bg-dark-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold-500/50 peer-checked:after:bg-gold-400"></div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- ROLE EDIT MODAL -->
+    <!-- ============================================================ -->
+    <div id="role-edit-modal" class="modal-wrapper fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="modal-overlay absolute inset-0" onclick="toggleRoleEditModal()"></div>
+        <div class="modal-container relative w-full max-w-lg max-h-[90vh] mx-4">
+            <button class="modal-close absolute -top-3 -right-3 z-10 w-10 h-10 rounded-full flex items-center justify-center border border-gold-500/30 text-gray-400 hover:text-gold-400 transition-colors" onclick="toggleRoleEditModal()">
+                <span class="text-lg">✕</span>
+            </button>
+
+            <div class="modal-card rounded-xl border border-gold-500/20 overflow-hidden">
+                <div class="modal-header px-5 py-4 border-b border-gold-500/10">
+                    <h2 class="font-cinzel text-lg text-gold-400 tracking-wider text-center">编辑角色</h2>
+                </div>
+
+                <div class="p-5 max-h-[65vh] overflow-y-auto">
+                    <input type="hidden" id="edit-role-id">
+
+                    <div class="mb-4">
+                        <label class="block text-gray-300 text-xs mb-1.5 tracking-wider">角色名称</label>
+                        <input type="text" id="edit-role-name" class="dark-input w-full rounded-lg px-3 py-2 text-sm" disabled>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-gray-300 text-xs mb-1.5 tracking-wider">角色头像</label>
+                        <div class="flex items-center gap-3">
+                            <img id="edit-role-avatar" src="" alt="角色头像" class="w-14 h-14 rounded-full object-cover border-2 border-gold-500/20">
+                            <p class="text-xs text-gray-500">自动匹配您选择的模型</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <div>
+                            <label class="block text-gray-300 text-xs mb-1.5 tracking-wider">性别</label>
+                            <select id="edit-role-gender" class="dark-input w-full rounded-lg px-3 py-2 text-sm">
+                                <option value="male">男</option>
+                                <option value="female">女</option>
+                                <option value="unknown">未知</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-gray-300 text-xs mb-1.5 tracking-wider">绑定模型</label>
+                            <select id="edit-role-model" class="dark-input w-full rounded-lg px-3 py-2 text-sm"></select>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-gray-300 text-xs mb-1.5 tracking-wider">性格特点</label>
+                        <textarea id="edit-role-personality" class="dark-input w-full rounded-lg px-3 py-2 h-20 text-sm resize-none" maxlength="300"></textarea>
+                        <div class="text-right text-[10px] text-gray-600 mt-1"><span id="personality-count">0</span>/300</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-gray-300 text-xs mb-1.5 tracking-wider">机型</label>
+                        <input type="text" id="edit-role-device" class="dark-input w-full rounded-lg px-3 py-2 text-sm" maxlength="300">
+                        <div class="text-right text-[10px] text-gray-600 mt-1"><span id="device-count">0</span>/300</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-gray-300 text-xs mb-1.5 tracking-wider">角色音色</label>
+                        <select id="edit-role-voice" class="dark-input w-full rounded-lg px-3 py-2 text-sm">
+                            <option value="werewolf">狼人音色 — 低沉威胁</option>
+                            <option value="seer">预言家音色 — 神秘智慧</option>
+                            <option value="witch">女巫音色 — 自信神秘</option>
+                            <option value="hunter">猎人音色 — 坚定有力</option>
+                            <option value="guard">守卫音色 — 稳重可靠</option>
+                            <option value="villager">村民音色 — 普通友好</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-gray-300 text-xs mb-1.5 tracking-wider">选择具体语音</label>
+                        <div class="flex gap-2">
+                            <select id="edit-voice-index" class="dark-input flex-1 rounded-lg px-3 py-2 text-sm">
+                                <option value="-1">使用角色音色默认设置</option>
+                            </select>
+                            <button type="button" id="preview-voice-btn" class="shrink-0 px-3 py-2 rounded-lg border border-gold-500/20 text-gray-400 hover:text-gold-400 text-sm transition-colors">
+                                🔊 试听
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-gray-300 text-xs mb-1.5 tracking-wider">
+                            音调: <span id="edit-voice-pitch-value" class="text-gold-400">1.0</span>
+                            <span class="text-[10px] text-gray-600">（降低=更低沉，提高=更高亢）</span>
+                        </label>
+                        <input type="range" id="edit-voice-pitch" min="0.5" max="2" step="0.1" value="1" class="dark-range w-full mt-1">
+                    </div>
+
+                    <div class="mb-5">
+                        <label class="block text-gray-300 text-xs mb-1.5 tracking-wider">
+                            语速: <span id="edit-voice-rate-value" class="text-gold-400">1.0</span>
+                        </label>
+                        <input type="range" id="edit-voice-rate" min="0.5" max="2" step="0.1" value="1" class="dark-range w-full mt-1">
+                    </div>
+
+                    <div class="flex gap-3">
+                        <button id="optimize-prompt-btn" class="flex-1 py-2.5 rounded-lg border border-gold-500/20 text-gray-400 hover:text-gold-400 text-sm transition-colors">
+                            AI 优化提示词
+                        </button>
+                        <button id="save-role-btn" class="flex-1 py-2.5 rounded-lg gold-btn text-sm">
+                            保存修改
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- GAME OVER MODAL -->
+    <!-- ============================================================ -->
+    <div id="game-over-modal" class="modal-wrapper fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="modal-overlay absolute inset-0"></div>
+        <div class="modal-container relative w-full max-w-lg mx-4">
+            <div class="modal-card rounded-xl border border-gold-500/20 overflow-hidden">
+                <div class="px-6 py-6 text-center border-b border-gold-500/10">
+                    <h2 id="game-result-title" class="font-cinzel text-2xl text-gold-400 tracking-wider">游戏结束</h2>
+                </div>
+                <div class="p-6">
+                    <!-- MVP Display -->
+                    <div id="mvp-display" class="flex flex-col items-center mb-6">
+                        <div class="mvp-crown text-3xl mb-2">👑</div>
+                        <img id="mvp-avatar" src="" alt="MVP 头像" class="w-20 h-20 rounded-full object-cover border-2 border-gold-500/40 mb-2">
+                        <div id="mvp-name" class="font-cinzel text-lg text-gold-400 tracking-wider"></div>
+                        <div class="text-xs text-gray-500 tracking-widest uppercase mt-1">AI 评选 MVP</div>
+                        <div id="mvp-reason" class="text-xs text-gray-400 mt-2 text-center max-w-xs leading-relaxed hidden"></div>
+                    </div>
+
+                    <!-- Final Roles -->
+                    <div id="final-roles" class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6"></div>
+
+                    <!-- Actions -->
+                    <div class="flex gap-3">
+                        <button id="game-over-restart-btn" class="flex-1 py-2.5 rounded-lg border border-gold-500/20 text-gray-300 hover:text-gold-400 text-sm transition-colors">
+                            重新开始
+                        </button>
+                        <button id="game-over-home-btn" class="flex-1 py-2.5 rounded-lg gold-btn text-sm">
+                            返回主页
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- API ERROR MODAL -->
+    <!-- ============================================================ -->
+    <div id="api-error-modal" class="modal-wrapper fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="modal-overlay absolute inset-0" onclick="toggleApiErrorModal()"></div>
+        <div class="modal-container relative w-full max-w-md mx-4">
+            <div class="modal-card rounded-xl border border-blood-700/30 overflow-hidden">
+                <div class="px-6 py-5 text-center border-b border-blood-700/15">
+                    <div class="text-3xl mb-2">⚠️</div>
+                    <h3 class="font-cinzel text-lg text-gold-400 tracking-wider">API 连接失败</h3>
+                </div>
+                <div class="p-6 text-center">
+                    <p class="text-gray-400 text-sm mb-6">无法连接到 AI 服务，请检查 API 配置是否正确。</p>
+                    <div class="flex gap-3 justify-center">
+                        <button id="retry-api-btn" class="gold-btn px-6 py-2 rounded-lg text-sm">
+                            重试
+                        </button>
+                        <button id="cancel-api-btn" class="px-6 py-2 rounded-lg border border-gray-600 text-gray-400 hover:text-gray-300 text-sm transition-colors" onclick="toggleApiErrorModal()">
+                            取消
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- DATA CENTER PANEL -->
+    <!-- ============================================================ -->
+    <div id="data-center-panel" class="modal-wrapper fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="modal-overlay absolute inset-0" onclick="toggleDataCenterPanel()"></div>
+        <div class="modal-container relative w-full max-w-3xl max-h-[90vh] mx-4">
+            <button class="modal-close absolute -top-3 -right-3 z-10 w-10 h-10 rounded-full flex items-center justify-center border border-gold-500/30 text-gray-400 hover:text-gold-400 transition-colors" onclick="toggleDataCenterPanel()">
+                <span class="text-lg">✕</span>
+            </button>
+            <div class="modal-card rounded-xl border border-gold-500/20 overflow-hidden">
+                <div class="modal-header px-6 py-5 border-b border-gold-500/10">
+                    <h2 class="font-cinzel text-xl md:text-2xl text-gold-400 tracking-[0.15em] text-center">📊 数据中心</h2>
+                </div>
+                <div class="p-6 max-h-[70vh] overflow-y-auto">
+                    <!-- Stats Overview -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-total-games">0</div>
+                            <div class="stat-label">总对局</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-good-wins">0</div>
+                            <div class="stat-label">好人胜</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-wolf-wins">0</div>
+                            <div class="stat-label">狼人胜</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-win-rate">0%</div>
+                            <div class="stat-label">好人胜率</div>
+                        </div>
+                    </div>
+                    <!-- Streak -->
+                    <div class="grid grid-cols-2 gap-3 mb-6">
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-current-streak">0</div>
+                            <div class="stat-label">当前连胜</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="stat-best-streak">0</div>
+                            <div class="stat-label">最高连胜</div>
+                        </div>
+                    </div>
+                    <!-- MVP Leaderboard -->
+                    <h3 class="font-cinzel text-sm text-gold-500/70 tracking-[0.2em] mb-3">MVP 排行榜</h3>
+                    <div id="stats-mvp-list" class="mb-6"></div>
+                    <!-- Model Performance -->
+                    <h3 class="font-cinzel text-sm text-gold-500/70 tracking-[0.2em] mb-3">模型表现</h3>
+                    <div id="stats-model-list" class="mb-6"></div>
+                    <!-- Game History -->
+                    <h3 class="font-cinzel text-sm text-gold-500/70 tracking-[0.2em] mb-3">最近对局</h3>
+                    <div id="stats-history-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- ACHIEVEMENTS PANEL -->
+    <!-- ============================================================ -->
+    <div id="achievements-panel" class="modal-wrapper fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="modal-overlay absolute inset-0" onclick="toggleAchievementsPanel()"></div>
+        <div class="modal-container relative w-full max-w-2xl max-h-[90vh] mx-4">
+            <button class="modal-close absolute -top-3 -right-3 z-10 w-10 h-10 rounded-full flex items-center justify-center border border-gold-500/30 text-gray-400 hover:text-gold-400 transition-colors" onclick="toggleAchievementsPanel()">
+                <span class="text-lg">✕</span>
+            </button>
+            <div class="modal-card rounded-xl border border-gold-500/20 overflow-hidden">
+                <div class="modal-header px-6 py-5 border-b border-gold-500/10">
+                    <h2 class="font-cinzel text-xl md:text-2xl text-gold-400 tracking-[0.15em] text-center">🎖️ 成就系统</h2>
+                </div>
+                <div class="p-6 max-h-[70vh] overflow-y-auto">
+                    <div class="text-center mb-6">
+                        <span class="text-3xl font-cinzel text-gold-400" id="achievement-count">0</span>
+                        <span class="text-gray-500 text-sm ml-2">/ <span id="achievement-total">0</span> 已解锁</span>
+                    </div>
+                    <div id="achievements-list" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- LEADERBOARD PANEL -->
+    <!-- ============================================================ -->
+    <div id="leaderboard-panel" class="modal-wrapper fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="modal-overlay absolute inset-0" onclick="toggleLeaderboardPanel()"></div>
+        <div class="modal-container relative w-full max-w-2xl max-h-[90vh] mx-4">
+            <button class="modal-close absolute -top-3 -right-3 z-10 w-10 h-10 rounded-full flex items-center justify-center border border-gold-500/30 text-gray-400 hover:text-gold-400 transition-colors" onclick="toggleLeaderboardPanel()">
+                <span class="text-lg">✕</span>
+            </button>
+            <div class="modal-card rounded-xl border border-gold-500/20 overflow-hidden">
+                <div class="modal-header px-6 py-5 border-b border-gold-500/10">
+                    <h2 class="font-cinzel text-xl md:text-2xl text-gold-400 tracking-[0.15em] text-center">🏆 排行榜</h2>
+                </div>
+                <div class="p-6 max-h-[70vh] overflow-y-auto">
+                    <!-- Tabs -->
+                    <div class="flex gap-2 mb-6 justify-center">
+                        <button class="leaderboard-tab px-4 py-2 rounded-lg text-sm border border-gold-500/30 text-gold-400 bg-gold-500/10" data-tab="mvp">MVP 榜</button>
+                        <button class="leaderboard-tab px-4 py-2 rounded-lg text-sm border border-gray-700 text-gray-500 hover:border-gray-500" data-tab="model">模型榜</button>
+                        <button class="leaderboard-tab px-4 py-2 rounded-lg text-sm border border-gray-700 text-gray-500 hover:border-gray-500" data-tab="replay">回放</button>
+                    </div>
+                    <div id="leaderboard-content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- DAILY CHALLENGE PANEL -->
+    <!-- ============================================================ -->
+    <div id="daily-challenge-panel" class="modal-wrapper fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="modal-overlay absolute inset-0" onclick="toggleDailyChallengePanel()"></div>
+        <div class="modal-container relative w-full max-w-lg mx-4">
+            <button class="modal-close absolute -top-3 -right-3 z-10 w-10 h-10 rounded-full flex items-center justify-center border border-gold-500/30 text-gray-400 hover:text-gold-400 transition-colors" onclick="toggleDailyChallengePanel()">
+                <span class="text-lg">✕</span>
+            </button>
+            <div class="modal-card rounded-xl border border-gold-500/20 overflow-hidden">
+                <div class="modal-header px-6 py-5 border-b border-gold-500/10">
+                    <h2 class="font-cinzel text-xl text-gold-400 tracking-[0.15em] text-center">⚔️ 每日挑战</h2>
+                </div>
+                <div class="p-6" id="daily-challenge-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- JS Scripts -->
+    <!-- ============================================================ -->
+    <!-- 核心基础设施模块（必须最先加载） -->
+    <script src="/static/js/constants.js"></script>
+    <script src="/static/js/logger.js"></script>
+    <script src="/static/js/security.js"></script>
+    <script src="/static/js/resourceManager.js"></script>
+    <script src="/static/js/errorHandler.js"></script>
+    <script src="/static/js/domCache.js"></script>
+    <script src="/static/js/moduleLoader.js"></script>
+    
+    <!-- 配置与状态管理 -->
+    <script src="/static/js/config.js"></script>
+    <script src="/static/js/gameState.js"></script>
+    
+    <!-- 工具模块 -->
+    <script src="/static/js/audio.js"></script>
+    <script src="/static/js/utils.js"></script>
+    <script src="/static/js/storage.js"></script>
+    <script src="/static/js/providers.js"></script>
+    
+    <!-- UI 相关模块 -->
+    <script src="/static/js/sceneBackground.js"></script>
+    <script src="/static/js/cinematicTransitions.js"></script>
+    <script src="/static/js/skillEffects.js"></script>
+    <script src="/static/js/animation.js"></script>
+    <script src="/static/js/uiManager.js"></script>
+    <script src="/static/voice_player.js"></script>
+    <script src="/static/js/speechPlayer.js"></script>
+    <script src="/static/js/messageHandler.js"></script>
+    <script src="/static/js/voting.js"></script>
+    <script src="/static/js/mvp.js"></script>
+    <script src="/static/js/websocket.js"></script>
+    <script src="/static/js/roles.js"></script>
+    
+    <!-- 扩展功能模块 -->
+    <script src="/static/js/stats.js"></script>
+    <script src="/static/js/achievements.js"></script>
+    <script src="/static/js/replay.js"></script>
+    <script src="/static/js/personality.js"></script>
+    <script src="/static/js/dailyChallenge.js"></script>
+    <script src="/static/js/theme.js"></script>
+    
+    <!-- 主入口（最后加载） -->
+    <script src="/static/js/main.js"></script>
+</body>
+</html>

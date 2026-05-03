@@ -1,0 +1,197 @@
+/* ============================================================ */
+/* AI WEREWOLF — Tailwind CSS Input                            */
+/* Dark Fantasy Card Style                                     */
+/* ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ====== Base Layer ====== */
+@layer base {
+    html {
+        scroll-behavior: smooth;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+        font-family: 'Noto Sans SC', sans-serif;
+        color: #e5e5e5;
+        background-color: #07080e;
+        overflow-x: hidden;
+        background:
+            radial-gradient(ellipse at 20% 50%, rgba(30, 20, 60, 0.5) 0%, transparent 50%),
+            radial-gradient(ellipse at 80% 20%, rgba(20, 30, 60, 0.4) 0%, transparent 50%),
+            radial-gradient(ellipse at 50% 80%, rgba(40, 25, 20, 0.3) 0%, transparent 50%),
+            linear-gradient(180deg, #07080e 0%, #0c0e18 30%, #0f1120 60%, #0a0c14 100%);
+        background-attachment: fixed;
+    }
+
+    ::selection {
+        background-color: rgba(212, 168, 48, 0.3);
+        color: #fef9e7;
+    }
+}
+
+/* ====== Component Layer ====== */
+@layer components {
+    /* Dark Input */
+    .dark-input {
+        background-color: rgba(12, 14, 24, 0.8);
+        border: 1px solid rgba(212, 168, 48, 0.1);
+        color: #e0e0e0;
+        border-radius: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        outline: none;
+        transition: all 0.3s ease;
+        font-family: 'Noto Sans SC', sans-serif;
+    }
+
+    .dark-input:focus {
+        border-color: rgba(212, 168, 48, 0.35);
+        background-color: rgba(18, 20, 34, 0.9);
+        box-shadow: 0 0 12px rgba(212, 168, 48, 0.08);
+    }
+
+    .dark-input::placeholder {
+        color: rgba(150, 150, 150, 0.4);
+    }
+
+    /* Gold Action Button */
+    .gold-btn {
+        background: linear-gradient(to bottom right, rgba(139, 26, 26, 0.7), rgba(139, 26, 26, 0.8));
+        border: 1px solid rgba(212, 168, 48, 0.2);
+        color: #fef9e7;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 15px rgba(139, 26, 26, 0.2);
+    }
+
+    .gold-btn:hover {
+        background: linear-gradient(to bottom right, rgba(163, 30, 30, 0.8), rgba(139, 26, 26, 0.9));
+        box-shadow: 0 4px 25px rgba(139, 26, 26, 0.35);
+    }
+
+    .gold-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    /* Modal Card */
+    .modal-card {
+        background: linear-gradient(to bottom right, rgba(26, 29, 46, 0.98), rgba(12, 14, 24, 0.99));
+        border: 1px solid rgba(212, 168, 48, 0.2);
+        border-radius: 0.75rem;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 40px rgba(212, 168, 48, 0.05), inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    /* Section Label */
+    .section-label {
+        font-family: 'Cinzel', serif;
+        font-size: 0.875rem;
+        color: rgba(212, 168, 48, 0.7);
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+    }
+
+    /* Parchment / Scroll style */
+    .parchment-bg {
+        background: linear-gradient(135deg, rgba(30, 28, 22, 0.6), rgba(22, 20, 18, 0.7));
+        border: 1px solid rgba(212, 168, 48, 0.08);
+        border-radius: 0.5rem;
+        position: relative;
+    }
+
+    /* Nav Button */
+    .nav-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        background-color: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        color: #9ca3af;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .nav-btn:hover {
+        background-color: rgba(212, 168, 48, 0.08);
+        border-color: rgba(212, 168, 48, 0.25);
+        color: #f5cc5a;
+        box-shadow: 0 0 15px rgba(212, 168, 48, 0.1);
+    }
+
+    /* Func Card */
+    .func-card-inner {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.875rem 1.25rem;
+        border-radius: 0.75rem;
+        background: linear-gradient(to bottom right, rgba(26, 29, 46, 0.7), rgba(18, 20, 34, 0.8));
+        border: 1px solid rgba(212, 168, 48, 0.08);
+        transition: all 0.3s ease;
+    }
+
+    /* Stat Card */
+    .stat-card {
+        padding: 1rem;
+        border-radius: 0.75rem;
+        background: linear-gradient(to bottom right, rgba(26, 29, 46, 0.7), rgba(18, 20, 34, 0.8));
+        border: 1px solid rgba(212, 168, 48, 0.08);
+        text-align: center;
+    }
+
+    .stat-value {
+        font-family: 'Cinzel', serif;
+        font-size: 1.875rem;
+        color: #f5cc5a;
+        line-height: 1;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-top: 0.25rem;
+        letter-spacing: 0.05em;
+    }
+}
+
+/* ====== Utilities Layer ====== */
+@layer utilities {
+    .text-shadow-gold {
+        text-shadow: 0 0 20px rgba(212, 168, 48, 0.5), 0 0 40px rgba(212, 168, 48, 0.2);
+    }
+
+    .text-shadow-blood {
+        text-shadow: 0 0 20px rgba(139, 26, 26, 0.6), 0 0 40px rgba(139, 26, 26, 0.3);
+    }
+
+    .animation-float {
+        animation: float 3s ease-in-out infinite;
+    }
+
+    .animation-pulse-slow {
+        animation: pulse 4s ease-in-out infinite;
+    }
+
+    .animation-shimmer {
+        animation: shimmer 2.5s ease-in-out infinite;
+    }
+
+    .animation-fade-in-up {
+        animation: fadeInUp 0.6s ease-out forwards;
+    }
+
+    .animation-border-glow {
+        animation: borderGlow 2s ease-in-out infinite;
+    }
+}

@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 模型考试 - 第五人格风格</title>
+    <link href="/static/css/style.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=MedievalSharp&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+    <link href="/static/css/custom-animations.css" rel="stylesheet">
+    <style>
+        .score-display {
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+        .answer-result.correct {
+            color: #10b981;
+        }
+        .answer-result.incorrect {
+            color: #ef4444;
+        }
+        .question-number {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .file-list-item {
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .file-list-item:hover {
+            border-color: #fbbf24;
+        }
+        .file-list-item.selected {
+            border-color: #fbbf24;
+            background-color: #1f2937;
+        }
+        #drop-zone {
+            border: 2px dashed #991b1b;
+            transition: all 0.3s;
+        }
+        #drop-zone.dragover {
+            border-color: #fbbf24;
+            background-color: rgba(251, 191, 36, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gothic-blue min-h-screen font-serif text-gothic-light overflow-x-hidden">
+    <div class="fixed inset-0 z-0 opacity-30 bg-cover bg-center" style="background-image: url('https://p11-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/0066be6d27204eecba808d4d034679c1~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=2026042209420529A1BC658A371036FED4&rrcfp=f06b921b&x-expires=1779414195&x-signature=R3JFR5K30cSUZRQkLCP8U0QF%2Fr4%3D')"></div>
+    
+    <audio id="button-click" src="/static/audio/button-click.wav" preload="none"></audio>
+    
+    <script src="/static/js/audio.js"></script>
+
+    <div id="exam-page" class="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-8">
+        <button id="back-btn" class="absolute top-4 left-4 bg-gothic-gray border-2 border-gothic-red hover:border-gothic-gold text-gothic-light py-2 px-4 rounded-lg font-serif transition-all duration-300">
+            <i class="fa fa-arrow-left mr-2"></i> 返回主页
+        </button>
+
+        <h1 class="mt-16 md:mt-24 text-4xl md:text-5xl font-gothic text-gothic-gold text-shadow-gothic mb-8 text-center">
+            AI 模型考试
+        </h1>
+
+        <div class="bg-gothic-paper border-2 border-gothic-red rounded-lg p-6 max-w-3xl w-full">
+            <div id="file-selection" class="mb-6">
+                <h3 class="text-xl font-gothic text-gothic-gold mb-4">选择题库</h3>
+                <div id="file-list" class="grid gap-3 mb-4"></div>
+                
+                <div id="upload-section" class="mt-4">
+                    <h4 class="font-gothic text-gothic-gold mb-2">上传新题库</h4>
+                    <div id="drop-zone" class="bg-gothic-gray border-2 border-gothic-red rounded-lg p-6 text-center cursor-pointer transition-all duration-300">
+                        <i class="fa fa-cloud-upload text-3xl text-gothic-gold mb-3"></i>
+                        <p>拖放文件到这里，或点击选择</p>
+                        <p class="text-sm text-gray-400 mt-2">支持 .txt 格式</p>
+                        <input type="file" id="file-input" accept=".txt" class="hidden">
+                    </div>
+                </div>
+            </div>
+
+            <div id="provider-selection" class="mb-6">
+                <h3 class="text-xl font-gothic text-gothic-gold mb-4">选择模型</h3>
+                <div id="providers-list" class="grid gap-3"></div>
+            </div>
+
+            <div id="exam-info" class="mb-6 hidden">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <span class="text-lg">题目进度: </span>
+                        <span id="question-progress" class="font-gothic text-gothic-gold">1 / 50</span>
+                    </div>
+                    <div class="score-display">
+                        <span>总分: </span>
+                        <span id="total-score" class="text-gothic-gold">0</span>
+                        <span> / 100</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="question-area" class="hidden">
+                <div class="question-number text-gothic-gold mb-3">
+                    <span id="current-question-num">第 1 题</span>
+                </div>
+                <div id="question-text" class="text-lg mb-6 leading-relaxed"></div>
+
+                <div id="answer-area" class="mb-6">
+                    <div id="loading-indicator" class="hidden text-center py-4">
+                        <i class="fa fa-spinner fa-spin text-2xl text-gothic-gold"></i>
+                        <p class="mt-2">正在请求模型回答...</p>
+                    </div>
+
+                    <div id="answer-result" class="hidden">
+                        <div class="mb-4">
+                            <h4 class="font-gothic text-gothic-gold mb-2">模型回答:</h4>
+                            <p id="model-answer" class="bg-gothic-gray p-3 rounded"></p>
+                        </div>
+                        <div class="mb-4">
+                            <h4 class="font-gothic text-gothic-gold mb-2">正确答案:</h4>
+                            <p id="correct-answer" class="bg-gothic-gray p-3 rounded"></p>
+                        </div>
+                        <div class="text-center mb-4">
+                            <span id="score-result" class="text-2xl font-gothic"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-center gap-4">
+                    <button id="submit-answer-btn" class="bg-gothic-dark-red border-2 border-gothic-red hover:border-gothic-gold text-gothic-light py-2 px-6 rounded-lg font-serif transition-all duration-300">
+                        <i class="fa fa-paper-plane mr-2"></i> 请求模型回答
+                    </button>
+                    <button id="next-question-btn" class="bg-gothic-gray border-2 border-gothic-red hover:border-gothic-gold text-gothic-light py-2 px-6 rounded-lg font-serif transition-all duration-300 hidden">
+                        <i class="fa fa-arrow-right mr-2"></i> 下一题
+                    </button>
+                </div>
+            </div>
+
+            <div id="exam-complete" class="hidden text-center">
+                <h2 class="text-3xl font-gothic text-gothic-gold mb-6">考试完成!</h2>
+                <div class="mb-6">
+                    <p class="text-2xl mb-2">最终得分</p>
+                    <p id="final-score" class="text-5xl font-gothic text-gothic-gold">0</p>
+                    <p class="text-xl">/ <span id="max-score">100</span></p>
+                </div>
+                <div class="mb-6">
+                    <p>正确: <span id="correct-count" class="text-green-400">0</span> 题</p>
+                    <p>错误: <span id="incorrect-count" class="text-red-400">0</span> 题</p>
+                </div>
+                <button id="restart-btn" class="bg-gothic-dark-red border-2 border-gothic-red hover:border-gothic-gold text-gothic-light py-2 px-6 rounded-lg font-serif transition-all duration-300">
+                    <i class="fa fa-refresh mr-2"></i> 重新考试
+                </button>
+            </div>
+        </div>
+
+        <div class="mt-8 text-sm text-gray-400">
+            © 2026 AI 狼人杀 - 第五人格风格
+        </div>
+    </div>
+
+    <script>
+        let providers = [];
+        let selectedProviderId = null;
+        let questions = [];
+        let currentQuestionIndex = 0;
+        let totalScore = 0;
+        let correctCount = 0;
+        let answers = [];
+        let examFiles = [];
+        let selectedFile = null;
+
+        // 页面加载完成
+        document.addEventListener('DOMContentLoaded', () => {
+            initAudio();
+            loadExamFiles();
+            loadProviders();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            document.getElementById('back-btn').addEventListener('click', () => {
+                playSound({ id: 'button-click' });
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 100);
+            });
+
+            document.getElementById('submit-answer-btn').addEventListener('click', submitAnswer);
+            document.getElementById('next-question-btn').addEventListener('click', nextQuestion);
+            document.getElementById('restart-btn').addEventListener('click', restartExam);
+
+            // 文件上传事件
+            const dropZone = document.getElementById('drop-zone');
+            const fileInput = document.getElementById('file-input');
+
+            dropZone.addEventListener('click', () => fileInput.click());
+
+            fileInput.addEventListener('change', handleFileSelect);
+
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragover');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                if (e.dataTransfer.files.length) {
+                    handleFile(e.dataTransfer.files[0]);
+                }
+            });
+        }
+
+        async function loadExamFiles() {
+            try {
+                const resp = await fetch('/api/exam/files');
+                const data = await resp.json();
+                if (data.success) {
+                    examFiles = data.files;
+                    renderFileList();
+                }
+            } catch (e) {
+                console.error('加载题库列表失败', e);
+            }
+        }
+
+        function renderFileList() {
+            const container = document.getElementById('file-list');
+            if (examFiles.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-400">没有可用题库，请上传新题库</p>';
+                return;
+            }
+
+            container.innerHTML = examFiles.map(f => `
+                <div class="file-list-item bg-gothic-gray border-2 border-gothic-red py-3 px-4 rounded-lg" data-file="${f}">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <i class="fa fa-file-text-o text-gothic-gold mr-2"></i>
+                            <span class="font-gothic">${f}</span>
+                        </div>
+                        <i class="fa fa-check-circle text-gothic-gold hidden check-icon"></i>
+                    </div>
+                </div>
+            `).join('');
+
+            container.querySelectorAll('.file-list-item').forEach(el => {
+                el.addEventListener('click', () => {
+                    container.querySelectorAll('.file-list-item').forEach(e => {
+                        e.classList.remove('selected');
+                        e.querySelector('.check-icon').classList.add('hidden');
+                    });
+                    el.classList.add('selected');
+                    el.querySelector('.check-icon').classList.remove('hidden');
+                    selectedFile = el.dataset.file;
+                });
+            });
+
+            // 默认选择第一个
+            if (examFiles.length > 0) {
+                container.querySelector('.file-list-item').click();
+            }
+        }
+
+        async function handleFileSelect(e) {
+            if (e.target.files.length) {
+                await handleFile(e.target.files[0]);
+            }
+        }
+
+        async function handleFile(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const resp = await fetch('/api/exam/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await resp.json();
+                if (data.success) {
+                    alert(data.message);
+                    await loadExamFiles(); // 刷新文件列表
+                } else {
+                    alert('上传失败：' + data.message);
+                }
+            } catch (e) {
+                console.error('上传文件失败', e);
+                alert('上传失败');
+            }
+        }
+
+        async function loadProviders() {
+            try {
+                const resp = await fetch('/api/config');
+                const data = await resp.json();
+                providers = Object.values(data.providers || {});
+                renderProviders();
+            } catch (e) {
+                console.error('加载providers失败', e);
+            }
+        }
+
+        let selectedModel = null;
+
+        function renderProviders() {
+            const container = document.getElementById('providers-list');
+            if (providers.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-400">请先在狼人杀设置中配置API</p>';
+                return;
+            }
+
+            container.innerHTML = providers.map(p => {
+                const models = p.used_models || (p.default_model ? [p.default_model] : []);
+                if (models.length === 0) {
+                    return `
+                        <div class="provider-option bg-gothic-gray border-2 border-gothic-red text-gothic-light py-3 px-4 rounded-lg transition-all duration-300 text-left opacity-60">
+                            <div class="font-gothic text-lg text-gothic-gold">${p.name}</div>
+                            <div class="text-sm opacity-80">请先在API设置中添加模型</div>
+                        </div>
+                    `;
+                }
+                return `
+                    <div class="provider-option bg-gothic-gray border-2 border-gothic-red hover:border-gothic-gold text-gothic-light py-3 px-4 rounded-lg transition-all duration-300" data-provider-id="${p.id}">
+                        <div class="font-gothic text-lg text-gothic-gold mb-3">${p.name}</div>
+                        <div class="models-grid grid gap-2">
+                            ${models.map(m => `
+                                <button class="model-btn bg-gothic-dark border border-gothic-red hover:border-gothic-gold text-gothic-light py-2 px-3 rounded transition-all duration-300 text-sm text-left" 
+                                        data-provider-id="${p.id}" data-model="${m}">
+                                    ${m}
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.querySelectorAll('.model-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    container.querySelectorAll('.model-btn').forEach(b => b.classList.remove('border-gothic-gold', 'bg-gothic-dark-red'));
+                    btn.classList.add('border-gothic-gold', 'bg-gothic-dark-red');
+                    selectedProviderId = btn.dataset.providerId;
+                    selectedModel = btn.dataset.model;
+                });
+            });
+
+            const startBtn = document.createElement('button');
+            startBtn.id = 'start-exam-btn';
+            startBtn.className = 'w-full mt-6 bg-gothic-dark-red border-2 border-gothic-red hover:border-gothic-gold text-gothic-light py-3 px-6 rounded-lg font-serif transition-all duration-300';
+            startBtn.innerHTML = '<i class="fa fa-play mr-2"></i> 开始考试';
+            startBtn.disabled = true;
+            startBtn.onclick = () => {
+                playSound({ id: 'button-click' });
+                if (selectedProviderId && selectedModel && selectedFile) {
+                    startExam();
+                }
+            };
+            container.appendChild(startBtn);
+
+            let hasSelected = false;
+            container.querySelectorAll('.model-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    hasSelected = true;
+                    if (selectedFile) {
+                        startBtn.disabled = false;
+                    }
+                });
+            });
+        }
+
+        async function startExam() {
+            try {
+                const url = selectedFile ? 
+                    `/api/exam/questions?file_name=${encodeURIComponent(selectedFile)}` : 
+                    '/api/exam/questions';
+                
+                const resp = await fetch(url);
+                const data = await resp.json();
+                if (data.success) {
+                    questions = data.questions;
+                    currentQuestionIndex = 0;
+                    totalScore = 0;
+                    correctCount = 0;
+                    answers = [];
+
+                    document.getElementById('file-selection').classList.add('hidden');
+                    document.getElementById('provider-selection').classList.add('hidden');
+                    document.getElementById('exam-info').classList.remove('hidden');
+                    document.getElementById('question-area').classList.remove('hidden');
+                    document.getElementById('exam-complete').classList.add('hidden');
+
+                    // 更新总分显示
+                    document.getElementById('max-score').textContent = questions.length * 2;
+
+                    showCurrentQuestion();
+                }
+            } catch (e) {
+                console.error('加载题目失败', e);
+                alert('加载题目失败');
+            }
+        }
+
+        function showCurrentQuestion() {
+            const q = questions[currentQuestionIndex];
+            document.getElementById('question-progress').textContent = `${currentQuestionIndex + 1} / ${questions.length}`;
+            document.getElementById('current-question-num').textContent = `第 ${q.id} 题`;
+            document.getElementById('question-text').textContent = q.question;
+
+            document.getElementById('answer-result').classList.add('hidden');
+            document.getElementById('loading-indicator').classList.add('hidden');
+            document.getElementById('submit-answer-btn').classList.remove('hidden');
+            document.getElementById('next-question-btn').classList.add('hidden');
+
+            updateScoreDisplay();
+        }
+
+        async function submitAnswer() {
+            if (!selectedProviderId || !selectedModel) return;
+
+            const q = questions[currentQuestionIndex];
+
+            document.getElementById('loading-indicator').classList.remove('hidden');
+            document.getElementById('submit-answer-btn').disabled = true;
+
+            try {
+                const payload = {
+                    provider_id: selectedProviderId,
+                    question_id: q.id,
+                    model: selectedModel
+                };
+
+                if (selectedFile) {
+                    payload.file_name = selectedFile;
+                }
+
+                const resp = await fetch('/api/exam/answer', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await resp.json();
+                if (data.success) {
+                    showAnswerResult(data);
+                } else {
+                    alert(data.message || '请求失败');
+                }
+            } catch (e) {
+                console.error('提交答案失败', e);
+                alert('提交答案失败');
+            }
+
+            document.getElementById('loading-indicator').classList.add('hidden');
+            document.getElementById('submit-answer-btn').disabled = false;
+        }
+
+        function showAnswerResult(data) {
+            totalScore += data.score;
+            if (data.is_correct) {
+                correctCount++;
+            }
+
+            answers.push(data);
+
+            document.getElementById('answer-result').classList.remove('hidden');
+            document.getElementById('model-answer').textContent = data.model_answer;
+            document.getElementById('correct-answer').textContent = data.correct_answer;
+
+            const scoreResult = document.getElementById('score-result');
+            if (data.is_correct) {
+                scoreResult.textContent = `+${data.score} 分 (正确)`;
+                scoreResult.className = 'text-2xl font-gothic answer-result correct';
+            } else {
+                scoreResult.textContent = `+${data.score} 分 (错误)`;
+                scoreResult.className = 'text-2xl font-gothic answer-result incorrect';
+            }
+
+            document.getElementById('submit-answer-btn').classList.add('hidden');
+
+            if (currentQuestionIndex < questions.length - 1) {
+                document.getElementById('next-question-btn').classList.remove('hidden');
+            } else {
+                setTimeout(showExamComplete, 1500);
+            }
+
+            updateScoreDisplay();
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            showCurrentQuestion();
+        }
+
+        function updateScoreDisplay() {
+            document.getElementById('total-score').textContent = totalScore;
+        }
+
+        function showExamComplete() {
+            document.getElementById('question-area').classList.add('hidden');
+            document.getElementById('exam-complete').classList.remove('hidden');
+            document.getElementById('final-score').textContent = totalScore;
+            document.getElementById('correct-count').textContent = correctCount;
+            document.getElementById('incorrect-count').textContent = questions.length - correctCount;
+        }
+
+        function restartExam() {
+            document.getElementById('file-selection').classList.remove('hidden');
+            document.getElementById('provider-selection').classList.remove('hidden');
+            document.getElementById('exam-info').classList.add('hidden');
+            document.getElementById('question-area').classList.add('hidden');
+            document.getElementById('exam-complete').classList.add('hidden');
+            selectedProviderId = null;
+            selectedModel = null;
+        }
+    </script>
+</body>
+</html>

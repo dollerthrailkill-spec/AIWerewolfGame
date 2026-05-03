@@ -1,0 +1,2764 @@
+// ==================== 全局变量 ====================
+let ws = null;
+let currentGameMode = null;
+let providers = []; // 存储所有供应商配置（从后端 API 加载）
+
+let roles = {
+    werewolf: {
+        name: '狼人',
+        avatar: 'https://p6-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/3ef06a82b7a64fa7b28ceac2d9efd664~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=2026042209420529A1BC658A371036FED4&rrcfp=f06b921b&x-expires=1779414195&x-signature=H1O3IO4HTPE%2BbPWtpb97YATvXdU%3D',
+        gender: 'male',
+        personality: '狡猾、残忍，擅长伪装和欺骗，在白天会尽力混淆视听，晚上则会和其他狼人一起商量杀人计划。',
+        device: 'PC',
+        model: 'gpt-3.5-turbo',
+        voice: 'werewolf'
+    },
+    seer: {
+        name: '预言家',
+        avatar: 'https://p26-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/0a2bd3124d5f44639276d39a087a11d6~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=2026042209420529A1BC658A371036FED4&rrcfp=f06b921b&x-expires=1779414197&x-signature=Sx6oVL4op5HtVLXIdNmKMNF6Xvo%3D',
+        gender: 'female',
+        personality: '睿智、冷静，拥有洞察人心的能力，每晚可以查验一名玩家的身份，是好人阵营的核心。',
+        device: 'PC',
+        model: 'gpt-3.5-turbo',
+        voice: 'seer'
+    },
+    witch: {
+        name: '女巫',
+        avatar: 'https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/0852282206ee4a4b89504beb3def4f53~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=2026042209420529A1BC658A371036FED4&rrcfp=f06b921b&x-expires=1779414196&x-signature=EUiS9tpQa2et3qHW3Q01MuLvRYs%3D',
+        gender: 'female',
+        personality: '神秘、谨慎，拥有两瓶药水，一瓶可以救人，一瓶可以杀人，是决定游戏走向的关键角色。',
+        device: 'PC',
+        model: 'gpt-3.5-turbo',
+        voice: 'witch'
+    },
+    hunter: {
+        name: '猎人',
+        avatar: 'https://p26-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/437709bf02084b35bda80238940ca927~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=2026042209420529A1BC658A371036FED4&rrcfp=f06b921b&x-expires=1779414239&x-signature=75C%2BoY%2BU4KGAtiOPfc5RFKpEqsc%3D',
+        gender: 'male',
+        personality: '勇敢、直率，当被狼人杀害或被村民放逐时，可以开枪带走一名玩家，是好人阵营的强力守护者。',
+        device: 'PC',
+        model: 'gpt-3.5-turbo',
+        voice: 'hunter'
+    },
+    guard: {
+        name: '守卫',
+        avatar: 'https://p11-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/709fefc8922d4544b426abfa94cefa29~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=2026042209420529A1BC658A371036FED4&rrcfp=f06b921b&x-expires=1779414240&x-signature=NYdQxiEkYXeyCGoiXtHv%2FegC52g%3D',
+        gender: 'male',
+        personality: '忠诚、勇敢，每晚可以保护一名玩家免受狼人袭击，是好人阵营的重要守护者。',
+        device: 'PC',
+        model: 'gpt-3.5-turbo',
+        voice: 'guard'
+    },
+    villager: {
+        name: '平民',
+        avatar: 'https://p11-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/fd6018582fd34199b6b9752a12716334~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=2026042209420529A1BC658A371036FED4&rrcfp=f06b921b&x-expires=1779414195&x-signature=KVCoF9K8FhxRpSvTyyz%2FkqXV7Kw%3D',
+        gender: 'male',
+        personality: '普通、善良，没有特殊能力，但可以通过发言和投票帮助好人阵营找出狼人，是游戏中最基础的角色。',
+        device: 'PC',
+        model: 'gpt-3.5-turbo',
+        voice: 'villager'
+    }
+};
+let gameState = {
+    players: [],
+    deadPlayers: new Set(),
+    currentPhase: 'waiting',
+    currentRound: 0,
+    isRunning: false,
+    isPaused: false,
+    autoPlay: false,
+    currentSpeakerIndex: 0,
+    speakers: [],
+    selectedVote: null,
+    selectedMVP: null,
+    gameResult: null,
+    mvp: null,
+    providers: {},
+    playerConfigs: [],
+    gameConfigs: {},
+    speechQueue: [] // 初始化发言队列
+};
+
+let messageQueue = [];
+let isProcessingMessage = false;
+let messageResumeResolve = null; // 手动模式下用于暂停/恢复消息队列
+
+// DOM 元素
+const homePage = document.getElementById('home-page');
+const gamePage = document.getElementById('game-page');
+const settingsModal = document.getElementById('settings-modal');
+const roleEditModal = document.getElementById('role-edit-modal');
+const mvpVoteModal = document.getElementById('mvp-vote-modal');
+const gameOverModal = document.getElementById('game-over-modal');
+const apiErrorModal = document.getElementById('api-error-modal');
+
+// 音效元素
+let bgm, buttonClickSound, seatSound, nightSound, werewolfSound, seerSound, witchSound, daySound, voteSound, winSound, loseSound, mvpSound;
+
+// ==================== 初始化 ====================
+document.addEventListener('DOMContentLoaded', () => {
+    loadFromLocalStorage();
+    initEventListeners();
+    initAudio();
+    updateStartButtonState();
+    loadProviders();
+    loadGameConfigs();
+    
+    // 主页面播放 BGM
+    playBGM();
+});
+
+function playBGM() {
+    if (bgm) {
+        bgm.volume = 0.3;
+        bgm.loop = true;  // 设置循环播放
+        bgm.play().catch(e => console.log('BGM 播放失败:', e));
+    }
+}
+
+function stopBGM() {
+    if (bgm) {
+        bgm.pause();
+        bgm.currentTime = 0;
+    }
+}
+
+function initAudio() {
+    console.log('[DEBUG] initAudio called');
+    bgm = document.getElementById('bgm');
+    buttonClickSound = document.getElementById('button-click');
+    seatSound = document.getElementById('seat-sound');
+    nightSound = document.getElementById('night-sound');
+    werewolfSound = document.getElementById('werewolf-sound');
+    seerSound = document.getElementById('seer-sound');
+    witchSound = document.getElementById('witch-sound');
+    daySound = document.getElementById('day-sound');
+    voteSound = document.getElementById('vote-sound');
+    winSound = document.getElementById('win-sound');
+    loseSound = document.getElementById('lose-sound');
+    mvpSound = document.getElementById('mvp-sound');
+    
+    // 预加载音频
+    const audioElements = [bgm, buttonClickSound, seatSound, nightSound, werewolfSound, seerSound, witchSound, daySound, voteSound, winSound, loseSound, mvpSound];
+    audioElements.forEach(audio => {
+        if (audio) {
+            audio.load();
+            audio.addEventListener('canplaythrough', () => {
+                console.log('[DEBUG] Audio loaded:', audio.id);
+            });
+            audio.addEventListener('error', (e) => {
+                console.error('[DEBUG] Audio load error:', audio.id, e);
+            });
+        }
+    });
+    
+    console.log('[DEBUG] Audio elements initialized');
+}
+
+// ==================== 数据加载 ====================
+async function loadProviders() {
+    try {
+        const resp = await fetch("/api/config");
+        const data = await resp.json();
+        providers = data.providers ? Object.values(data.providers) : [];
+        // 同步更新 gameState.providers 为字典格式
+        gameState.providers = data.providers ? data.providers : {};
+        console.log('[DEBUG] Loaded', providers.length, 'providers from backend');
+        renderProviders();  // 添加：渲染供应商列表
+        updateStartButtonState();
+    } catch (e) {
+        console.error("Failed to load providers:", e);
+        providers = [];
+        gameState.providers = {};
+        updateStartButtonState();
+    }
+}
+
+function loadFromLocalStorage() {
+    // 从本地加载角色配置
+    const saved = localStorage.getItem('aiWerewolfRoles');
+    if (saved) {
+        try {
+            const savedRoles = JSON.parse(saved);
+            // 合并保存的角色配置（保留默认的 avatar、device、model 等字段）
+            for (const key in savedRoles) {
+                if (savedRoles[key] && roles[key]) {
+                    roles[key] = { ...roles[key], ...savedRoles[key] };
+                }
+            }
+            console.log('[DEBUG] Loaded roles from localStorage');
+        } catch (e) {
+            console.error('Failed to parse saved roles:', e);
+        }
+    }
+}
+
+function saveToLocalStorage() {
+    // 仅保存角色配置到本地
+    localStorage.setItem('aiWerewolfRoles', JSON.stringify(roles));
+}
+
+// ==================== 事件监听器 ====================
+function initEventListeners() {
+    // 游戏模式选择
+    document.querySelectorAll('.game-mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            playSound({id: 'button-click'});
+            // 移除所有按钮的高亮状态
+            document.querySelectorAll('.game-mode-btn').forEach(b => {
+                b.classList.remove('border-gothic-gold', 'bg-gothic-red', 'shadow-[0_0_20px_rgba(139,0,0,0.8)]', 'text-gothic-gold');
+                b.classList.add('border-gothic-red', 'bg-gothic-gray', 'text-gothic-light');
+            });
+            // 添加当前按钮的高亮状态
+            btn.classList.remove('border-gothic-red', 'bg-gothic-gray', 'text-gothic-light');
+            btn.classList.add('border-gothic-gold', 'bg-gothic-red', 'shadow-[0_0_20px_rgba(139,0,0,0.8)]', 'text-gothic-gold');
+            currentGameMode = parseInt(btn.dataset.mode);
+            updateStartButtonState();
+        });
+    });
+    
+    // 设置按钮
+    document.getElementById('settings-btn').addEventListener('click', () => {
+        playSound({id: 'button-click'});
+        toggleSettingsModal();
+    });
+    
+    // 开始游戏按钮
+    document.getElementById('start-game-btn').addEventListener('click', () => {
+        playSound({id: 'button-click'});
+        startGame();
+    });
+    
+    // 退出游戏按钮
+    document.getElementById('exit-btn').addEventListener('click', () => {
+        playSound({id: 'button-click'});
+        if (confirm('确定要退出游戏吗？')) {
+            window.close();
+        }
+    });
+    
+    // 保存 API 配置按钮
+    document.getElementById('save-api-btn').addEventListener('click', () => {
+        playSound({id: 'button-click'});
+        saveApiConfig();
+    });
+    
+    // 添加模型供应商按钮
+    const addProviderBtn = document.getElementById('add-provider-btn');
+    if (addProviderBtn) {
+        addProviderBtn.addEventListener('click', () => {
+            console.log('[DEBUG] Add provider button clicked');
+            playSound({id: 'button-click'});
+            addNewProvider();
+        });
+    } else {
+        console.error('[DEBUG] add-provider-btn not found');
+    }
+    
+    // 事件委托处理删除按钮
+    const providersContainer = document.getElementById('providers-container');
+    if (providersContainer) {
+        providersContainer.addEventListener('click', (e) => {
+            if (e.target.closest('.delete-provider-btn')) {
+                console.log('[DEBUG] Delete provider button clicked');
+                playSound({id: 'button-click'});
+                const providerId = e.target.closest('.delete-provider-btn').dataset.id;
+                deleteProvider(providerId);
+            }
+        });
+    }
+    
+    // 设置标签页切换
+    document.querySelectorAll('.settings-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            playSound({id: 'button-click'});
+            const tabId = tab.dataset.tab;
+            document.querySelectorAll('.settings-tab').forEach(t => {
+                t.classList.remove('border-gothic-gold', 'text-gothic-gold');
+                t.classList.add('border-transparent', 'text-gothic-light');
+            });
+            tab.classList.remove('border-transparent', 'text-gothic-light');
+            tab.classList.add('border-gothic-gold', 'text-gothic-gold');
+            
+            document.querySelectorAll('.settings-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            if (tabId === 'api') {
+                document.getElementById('api-config').classList.remove('hidden');
+            } else if (tabId === 'roles') {
+                document.getElementById('roles-management').classList.remove('hidden');
+                renderRolesGrid();
+            }
+        });
+    });
+    
+    // 保存角色按钮
+    document.getElementById('save-role-btn').addEventListener('click', () => {
+        playSound({id: 'button-click'});
+        saveRoleChanges();
+    });
+    
+    // 音色试听按钮
+    document.getElementById('preview-voice-btn').addEventListener('click', () => {
+        playSound({id: 'button-click'});
+        previewRoleVoice();
+    });
+    
+    // AI 优化提示词按钮
+    document.getElementById('optimize-prompt-btn').addEventListener('click', () => {
+        playSound({id: 'button-click'});
+        optimizeRolePrompt();
+    });
+    
+    // 重新开始按钮
+    document.getElementById('restart-game-btn').addEventListener('click', () => {
+        playSound({id: 'button-click'});
+        if (confirm('确定要重新开始游戏吗？')) {
+            startGame();
+        }
+    });
+    
+    // 返回主页按钮
+    document.getElementById('return-home-btn').addEventListener('click', () => {
+        playSound({id: 'button-click'});
+        if (confirm('确定要返回主页吗？当前游戏进度将会丢失。')) {
+            returnToHome();
+        }
+    });
+    
+    // 暂停按钮
+    document.getElementById('pause-btn').addEventListener('click', () => {
+        playSound({id: 'button-click'});
+        togglePause();
+    });
+    
+    // 游戏结束重新开始按钮
+    document.getElementById('game-over-restart-btn').addEventListener('click', () => {
+        playSound({id: 'button-click'});
+        toggleGameOverModal();
+        startGame();
+    });
+    
+    // 游戏结束返回主页按钮
+    document.getElementById('game-over-home-btn').addEventListener('click', () => {
+        playSound({id: 'button-click'});
+        toggleGameOverModal();
+        returnToHome();
+    });
+    
+    // 自动播放按钮 - 注意：这个功能目前只是切换状态，实际播放由后端控制
+    document.getElementById('auto-play-btn').addEventListener('click', () => {
+        playSound({id: 'button-click'});
+        toggleAutoPlay();
+        console.log('[DEBUG] AutoPlay toggled, current state:', gameState.autoPlay);
+    });
+    
+    // 下一位发言按钮
+    document.getElementById('next-speech-btn').addEventListener('click', () => {
+        playSound({id: 'button-click'});
+        nextSpeech();
+    });
+    
+    // 提交投票按钮
+    document.getElementById('submit-vote-btn').addEventListener('click', () => {
+        playSound({id: 'vote-sound'});
+        submitVote();
+    });
+    
+    // 提交 MVP 投票按钮
+    document.getElementById('submit-mvp-btn').addEventListener('click', () => {
+        playSound({id: 'mvp-sound'});
+        submitMVPVote();
+    });
+    
+    // 重试 API 按钮
+    document.getElementById('retry-api-btn').addEventListener('click', () => {
+        playSound({id: 'button-click'});
+        saveApiConfig();
+    });
+    
+    // 取消 API 按钮
+    document.getElementById('cancel-api-btn').addEventListener('click', () => {
+        playSound({id: 'button-click'});
+        toggleApiErrorModal();
+    });
+    
+    // 字数统计
+    document.getElementById('edit-role-personality').addEventListener('input', () => {
+        const count = document.getElementById('edit-role-personality').value.length;
+        document.getElementById('personality-count').textContent = count;
+    });
+    
+    document.getElementById('edit-role-device').addEventListener('input', () => {
+        const count = document.getElementById('edit-role-device').value.length;
+        document.getElementById('device-count').textContent = count;
+    });
+    
+
+    
+    // 显示/隐藏API密钥功能
+    document.addEventListener('click', async (e) => {
+        if (e.target.closest('.toggle-password-btn')) {
+            const button = e.target.closest('.toggle-password-btn');
+            const input = button.previousElementSibling;
+            const icon = button.querySelector('i');
+            
+            if (input.type === 'password') {
+                // 安全提示：为了安全，我们不会显示真实API密钥
+                input.type = 'text';
+                icon.className = 'fa fa-eye-slash';
+                button.title = '隐藏API密钥';
+                
+                // 提示用户
+                if (!input.value.includes('****')) {
+                    // 保存当前值的提醒用户
+                    input.placeholder = '如需修改，请重新输入完整密钥';
+                }
+            } else {
+                // 隐藏API密钥
+                input.type = 'password';
+                icon.className = 'fa fa-eye';
+                button.title = '显示API密钥';
+            }
+        }
+    });
+}
+
+// ==================== UI 控制函数 ====================
+function updateStartButtonState() {
+    console.log('[DEBUG] updateStartButtonState called');
+    console.log('[DEBUG] Providers:', JSON.stringify(providers, null, 2));
+    console.log('[DEBUG] Providers length:', providers.length);
+    
+    const startButton = document.getElementById('start-game-btn');
+    
+    // 检查是否有有效的 API 配置
+    let hasValidProvider = false;
+    if (providers && providers.length > 0) {
+        hasValidProvider = providers.some(p => {
+            const hasKey = p.api_key && p.api_key.trim() !== '';
+            const hasUrl = p.api_url && p.api_url.trim() !== '';
+            console.log('[DEBUG] Provider:', p.name || p.id, 'hasKey:', hasKey, 'hasUrl:', hasUrl, 'fields:', Object.keys(p));
+            return hasKey && hasUrl;
+        });
+    }
+    
+    console.log('[DEBUG] Has valid provider:', hasValidProvider);
+    console.log('[DEBUG] Current game mode:', currentGameMode);
+    
+    if (currentGameMode && hasValidProvider) {
+        startButton.disabled = false;
+        startButton.classList.remove('opacity-50', 'cursor-not-allowed');
+    } else {
+        startButton.disabled = true;
+        startButton.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+}
+
+function toggleSettingsModal() {
+    settingsModal.classList.toggle('hidden');
+    if (!settingsModal.classList.contains('hidden')) {
+        renderProviders();
+        renderRolesGrid();
+    }
+}
+
+function toggleRoleEditModal() {
+    roleEditModal.classList.toggle('hidden');
+}
+
+function toggleMvpVoteModal() {
+    mvpVoteModal.classList.toggle('hidden');
+}
+
+function toggleGameOverModal() {
+    gameOverModal.classList.toggle('hidden');
+}
+
+function toggleApiErrorModal() {
+    apiErrorModal.classList.toggle('hidden');
+}
+
+function showTransitionOverlay(callback, text = '', duration = 1500) {
+    const overlay = document.getElementById('transitionOverlay');
+    const textElement = overlay.querySelector('.transition-text');
+    textElement.textContent = text;
+    overlay.classList.remove('hidden');
+    
+    setTimeout(() => {
+        if (callback) callback();
+        setTimeout(() => {
+            overlay.classList.add('hidden');
+        }, 600);
+    }, duration);
+}
+
+// ==================== API 配置 ====================
+
+// ==================== 角色管理 ====================
+function renderRolesGrid() {
+    const rolesGrid = document.getElementById('roles-grid');
+    rolesGrid.innerHTML = '';
+    
+    Object.entries(roles).forEach(([id, role]) => {
+        const roleCard = document.createElement('div');
+        roleCard.className = 'bg-gothic-gray border border-gothic-red rounded-lg p-4 cursor-pointer hover:border-gothic-gold transition-all duration-300 hover:scale-105';
+        roleCard.onclick = () => editRole(id);
+        
+        roleCard.innerHTML = `
+            <div class="flex flex-col items-center">
+                <img src="${role.avatar}" alt="${role.name}" class="w-16 h-16 rounded-full object-cover mb-2">
+                <h3 class="font-gothic text-gothic-gold">${role.name}</h3>
+                <p class="text-sm text-gray-400">${role.gender === 'male' ? '男' : role.gender === 'female' ? '女' : '未知'}</p>
+                <p class="text-xs text-gray-500 mt-1 truncate w-full text-center">${role.personality}</p>
+                <p class="text-xs text-gothic-light mt-1">${role.model}</p>
+            </div>
+        `;
+        
+        rolesGrid.appendChild(roleCard);
+    });
+}
+
+function editRole(roleId) {
+    console.log('[DEBUG] editRole called with:', roleId);
+    playSound({id: 'button-click'});
+    const role = roles[roleId];
+    
+    if (!role) {
+        console.error('[DEBUG] Role not found:', roleId);
+        alert('角色不存在');
+        return;
+    }
+    
+    // 设置基本字段
+    const editRoleId = document.getElementById('edit-role-id');
+    const editRoleName = document.getElementById('edit-role-name');
+    const editRoleAvatar = document.getElementById('edit-role-avatar');
+    const editRoleGender = document.getElementById('edit-role-gender');
+    const editRolePersonality = document.getElementById('edit-role-personality');
+    const personalityCount = document.getElementById('personality-count');
+    const editRoleDevice = document.getElementById('edit-role-device');
+    const deviceCount = document.getElementById('device-count');
+    
+    if (editRoleId) editRoleId.value = roleId;
+    if (editRoleName) editRoleName.value = role.name;
+    
+    // 自动设置对应模型的Logo
+    if (editRoleAvatar && window.getLogoForModel) {
+        const modelAvatar = window.getLogoForModel(role.model);
+        editRoleAvatar.src = modelAvatar;
+    }
+    
+    if (editRoleGender) editRoleGender.value = role.gender || 'unknown';
+    
+    // 设置音色选择
+    const editRoleVoice = document.getElementById('edit-role-voice');
+    if (editRoleVoice) {
+        editRoleVoice.value = role.voice || roleId; // 默认使用角色ID作为音色
+    }
+    if (editRolePersonality) {
+        editRolePersonality.value = role.personality || '';
+        if (personalityCount) personalityCount.textContent = (role.personality || '').length;
+    }
+    if (editRoleDevice) {
+        editRoleDevice.value = role.device || '';
+        if (deviceCount) deviceCount.textContent = (role.device || '').length;
+    }
+    
+    // 填充模型选择
+    const modelSelect = document.getElementById('edit-role-model');
+    if (modelSelect) {
+        modelSelect.innerHTML = '';
+        
+        // 从 providers 数组中获取所有模型
+        if (providers && providers.length > 0) {
+            providers.forEach(provider => {
+                const modelOption = document.createElement('option');
+                modelOption.value = provider.default_model;
+                modelOption.textContent = `${provider.name} - ${provider.default_model}`;
+                if (role.model === provider.default_model) {
+                    modelOption.selected = true;
+                }
+                modelSelect.appendChild(modelOption);
+            });
+        } else {
+            // 如果没有供应商，添加默认选项
+            const defaultOption = document.createElement('option');
+            defaultOption.value = 'gpt-3.5-turbo';
+            defaultOption.textContent = '默认模型 - gpt-3.5-turbo';
+            defaultOption.selected = true;
+            modelSelect.appendChild(defaultOption);
+        }
+    }
+    
+    toggleRoleEditModal();
+}
+
+function saveRoleChanges() {
+    const roleId = document.getElementById('edit-role-id').value;
+    const role = roles[roleId];
+    
+    role.gender = document.getElementById('edit-role-gender').value;
+    role.personality = document.getElementById('edit-role-personality').value;
+    role.device = document.getElementById('edit-role-device').value;
+    role.model = document.getElementById('edit-role-model').value;
+    role.voice = document.getElementById('edit-role-voice').value;
+    
+    // 自动使用模型Logo作为头像
+    if (window.getLogoForModel) {
+        role.avatar = window.getLogoForModel(role.model);
+    }
+    
+    saveToLocalStorage();
+    toggleRoleEditModal();
+    renderRolesGrid();
+}
+
+function previewRoleVoice() {
+    const roleId = document.getElementById('edit-role-id').value;
+    const roleName = document.getElementById('edit-role-name').value;
+    const selectedVoice = document.getElementById('edit-role-voice').value;
+    
+    if (!window.voicePlayer) {
+        alert('语音播放器未初始化，请刷新页面重试');
+        return;
+    }
+    
+    // 试听文本
+    const previewText = `我是${roleName}，这是我的声音试听。在游戏中我会用这个声音发言。`;
+    
+    // 播放试听语音
+    window.voicePlayer.speak(previewText, selectedVoice, roleName)
+        .then(() => {
+            console.log(`音色试听完成: ${roleName} - ${selectedVoice}`);
+        })
+        .catch((error) => {
+            console.error('音色试听失败:', error);
+            alert('音色试听失败，请检查浏览器是否支持语音合成功能');
+        });
+}
+
+function optimizeRolePrompt() {
+    const roleId = document.getElementById('edit-role-id').value;
+    const role = roles[roleId];
+    
+    // 模拟 AI 优化
+    setTimeout(() => {
+        const personality = document.getElementById('edit-role-personality');
+        const device = document.getElementById('edit-role-device');
+        
+        // 根据角色类型优化提示词
+        switch (roleId) {
+            case 'werewolf':
+                personality.value = '狡猾、残忍，擅长伪装和欺骗，在白天会尽力混淆视听，转移焦点，晚上则会和其他狼人一起商量最有威胁的目标。具有出色的表演能力，能够在关键时刻倒钩或自爆，保护同伴。';
+                device.value = '高性能 PC，配备专业声卡和麦克风，能够清晰传达低沉沙哑的声音，营造恐怖氛围。';
+                break;
+            case 'seer':
+                personality.value = '睿智、冷静，拥有洞察人心的能力，每晚可以查验一名玩家的身份。发言逻辑清晰，能够带领好人阵营找出狼人，但也懂得隐藏自己，避免过早被狼人发现。';
+                device.value = '高性能 PC，配备专业显卡，能够流畅运行预言家查验时的特效动画，增强游戏体验。';
+                break;
+            case 'witch':
+                personality.value = '神秘、谨慎，拥有两瓶药水，一瓶可以救人，一瓶可以杀人。决策果断，能够在关键时刻力挽狂澜，但也会谨慎使用药水，避免浪费。擅长隐藏自己的身份，不到关键时刻不会暴露。';
+                device.value = '高性能 PC，配备专业音响，能够清晰播放药水使用时的音效，增强游戏沉浸感。';
+                break;
+            case 'hunter':
+                personality.value = '勇敢、直率，当被狼人杀害或被村民放逐时，可以开枪带走一名玩家。发言强势，能够镇住场面，是好人阵营的强力守护者。但有时过于冲动，需要控制自己的情绪。';
+                device.value = '高性能 PC，配备专业键盘和鼠标，能够快速反应，在被放逐时迅速选择开枪目标。';
+                break;
+            case 'guard':
+                personality.value = '忠诚、勇敢，每晚可以保护一名玩家免受狼人袭击。善于观察和分析，能够判断谁最可能被袭击，是好人阵营的重要守护者。';
+                device.value = '高性能 PC，配备专业显示器，能够清晰观察游戏局势，做出最佳保护决策。';
+                break;
+            case 'villager':
+                personality.value = '普通、善良，没有特殊能力，但可以通过发言和投票帮助好人阵营找出狼人。发言积极，能够认真听取他人的意见，分析局势，是游戏中最基础但不可或缺的角色。';
+                device.value = '普通 PC，能够流畅运行游戏，提供稳定的网络连接，确保游戏体验。';
+                break;
+        }
+        
+        document.getElementById('personality-count').textContent = personality.value.length;
+        document.getElementById('device-count').textContent = device.value.length;
+        
+        alert('提示词优化完成！');
+    }, 1000);
+}
+
+// ==================== 后端 API 通信 ====================
+
+// 渲染所有供应商配置到界面
+function renderProviders() {
+    console.log('[DEBUG] renderProviders called');
+    const container = document.getElementById('providers-container');
+    if (!container) {
+        console.error('[DEBUG] providers-container not found');
+        return;
+    }
+    
+    container.innerHTML = '';
+    
+    providers.forEach(provider => {
+        const providerDiv = document.createElement('div');
+        providerDiv.className = 'provider-form mb-6 p-4 border border-gothic-red rounded-lg relative bg-gothic-gray bg-opacity-50';
+        providerDiv.innerHTML = `
+            <button class="delete-provider-btn absolute top-2 right-2 text-gothic-red hover:text-gothic-gold p-1" data-id="${provider.id}" title="删除此供应商">
+                <i class="fa fa-times"></i>
+            </button>
+            
+            <div class="mb-4">
+                <label class="block text-gothic-light mb-2 text-sm">供应商名称 <span class="text-gothic-red">*</span></label>
+                <input type="text" class="provider-name w-full bg-gothic-gray border border-gothic-red rounded px-3 py-2 text-gothic-light text-sm"
+                    value="${provider.name || ''}" placeholder="例如: OpenAI、Azure、Claude">
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-gothic-light mb-2 text-sm">API Key</label>
+                <div class="relative">
+                    <input type="password" class="provider-key w-full bg-gothic-gray border border-gothic-red rounded px-3 py-2 text-gothic-light text-sm pr-10"
+                        value="${provider.encrypted_api_key || provider.api_key || ''}" placeholder="输入API密钥" data-original-key="${provider.encrypted_api_key || provider.api_key || ''}">
+                    <button type="button" class="toggle-password-btn absolute right-2 top-1/2 transform -translate-y-1/2 text-gothic-light hover:text-gothic-gold transition-colors" title="显示API密钥">
+                        <i class="fa fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-gothic-light mb-2 text-sm">API Base URL</label>
+                <input type="text" class="provider-url w-full bg-gothic-gray border border-gothic-red rounded px-3 py-2 text-gothic-light text-sm"
+                    value="${provider.api_url || 'https://api.openai.com/v1'}" placeholder="例如：https://api.openai.com/v1">
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-gothic-light mb-2 text-sm">模型名称</label>
+                <input type="text" class="provider-model w-full bg-gothic-gray border border-gothic-red rounded px-3 py-2 text-gothic-light text-sm"
+                    value="${provider.default_model || 'gpt-3.5-turbo'}" placeholder="例如：gpt-4">
+            </div>
+        `;
+        container.appendChild(providerDiv);
+    });
+    
+    console.log('[DEBUG] Rendered', providers.length, 'providers');
+}
+
+// 添加新的供应商配置
+function addNewProvider() {
+    const newProvider = {
+        id: 'provider_' + Date.now(),
+        name: '',
+        api_key: '',
+        api_url: 'https://api.openai.com/v1',
+        default_model: 'gpt-3.5-turbo',
+        used_models: []
+    };
+    providers.push(newProvider);
+    renderProviders();
+}
+
+async function saveApiConfig() {
+    const statusElement = document.getElementById('api-status');
+    if (statusElement) statusElement.classList.add('hidden');
+
+    const providersToSave = [];
+
+    document.querySelectorAll('.provider-form').forEach(form => {
+        const providerId = form.querySelector('.delete-provider-btn').dataset.id || '';
+        let apiKey = form.querySelector('.provider-key').value;
+
+        // 如果 api_key 是脱敏的（包含 ****）或者为空，则使用 encrypted_api_key
+        if (apiKey.includes('****') || apiKey === '') {
+            const originalProvider = gameState.providers[providerId];
+            if (originalProvider && originalProvider.encrypted_api_key) {
+                apiKey = originalProvider.encrypted_api_key;
+            }
+        }
+
+        const provider = {
+            id: providerId,
+            name: form.querySelector('.provider-name').value,
+            api_key: apiKey,
+            api_url: form.querySelector('.provider-url').value,
+            default_model: form.querySelector('.provider-model').value,
+            used_models: []
+        };
+        providersToSave.push(provider);
+    });
+
+    let allSaved = true;
+
+    for (const provider of providersToSave) {
+        try {
+            const response = await fetch('/api/config/provider', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(provider)
+            });
+
+            if (!response.ok) {
+                allSaved = false;
+            }
+        } catch (error) {
+            allSaved = false;
+        }
+    }
+
+    if (allSaved) {
+        await loadProviders();
+        if (statusElement) {
+            statusElement.textContent = '所有配置保存成功！';
+            statusElement.className = 'text-green-500';
+        }
+    } else {
+        if (statusElement) {
+            statusElement.textContent = '部分配置保存失败，请检查控制台';
+            statusElement.className = 'text-red-500';
+        }
+    }
+
+    if (statusElement) statusElement.classList.remove('hidden');
+    setTimeout(() => {
+        if (statusElement) statusElement.classList.add('hidden');
+    }, 3000);
+}
+
+async function deleteProvider(providerId) {
+    const provider = providers.find(p => p.id === providerId);
+    const providerName = provider ? provider.name : '此供应商';
+    
+    if (!confirm(`确定要删除供应商"${providerName}"吗？\n\n删除后，使用该供应商的角色配置将失效。`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/config/provider/${providerId}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            // 删除成功后重新加载
+            await loadProviders();
+            console.log('Provider deleted:', providerId);
+            alert(`供应商"${providerName}"已成功删除！`);
+        } else {
+            const errorData = await response.json();
+            console.error('Delete provider failed:', response.statusText);
+            alert(`删除失败：${errorData.message || response.statusText}`);
+        }
+    } catch (error) {
+        console.error('Delete provider error:', error);
+        alert(`删除失败：${error.message}`);
+    }
+}
+
+async function loadGameConfigs() {
+    try {
+        const resp = await fetch("/api/game-configs");
+        const data = await resp.json();
+        gameState.gameConfigs = data;
+    } catch (e) {
+        console.error("Failed to load game configs:", e);
+    }
+}
+
+// ==================== 游戏控制 ====================
+async function startGame() {
+    console.log('[DEBUG] startGame called');
+    
+    // 如果游戏正在运行，先停止当前游戏
+    if (gameState.isRunning) {
+        console.log('[DEBUG] Game is running, stopping it first');
+        await stopCurrentGame();
+    }
+    
+    if (providers.length === 0) {
+        alert("请先配置至少一个模型供应商！");
+        return;
+    }
+    
+    // 清空消息队列和状态
+    messageQueue = [];
+    isProcessingMessage = false;
+    messageResumeResolve = null;
+    
+    // 清空发言队列和状态
+    if (gameState.speechQueue) {
+        gameState.speechQueue = [];
+    }
+    currentSpeechResolve = null;
+    
+    // 清除所有定时器
+    if (currentTypeWriterTimeout) {
+        clearTimeout(currentTypeWriterTimeout);
+        currentTypeWriterTimeout = null;
+    }
+    if (currentSpeechTimeout) {
+        clearTimeout(currentSpeechTimeout);
+        currentSpeechTimeout = null;
+    }
+    
+    // 停止语音播放器
+    if (window.voicePlayer) {
+        window.voicePlayer.stop();
+    }
+    
+    // 停止主页面 BGM
+    stopBGM();
+    
+    // 重置游戏状态
+    gameState = {
+        players: [],
+        deadPlayers: new Set(),
+        currentPhase: 'waiting',
+        currentRound: 0,
+        isRunning: false,
+        isPaused: false,
+        autoPlay: false,
+        currentSpeakerIndex: 0,
+        speakers: [],
+        selectedVote: null,
+        selectedMVP: null,
+        gameResult: null,
+        mvp: null,
+        providers: gameState.providers,
+        playerConfigs: [],
+        gameConfigs: gameState.gameConfigs,
+        speechQueue: []
+    };
+    
+    // 清空座位容器
+    const seatsContainer = document.getElementById('seats-container');
+    if (seatsContainer) {
+        seatsContainer.innerHTML = '';
+    }
+    
+    // 隐藏发言和投票区域
+    const speechArea = document.getElementById('speech-area');
+    if (speechArea) speechArea.classList.add('hidden');
+    
+    const votingArea = document.getElementById('voting-area');
+    if (votingArea) votingArea.classList.add('hidden');
+    
+    // 清空游戏日志
+    const gameLog = document.getElementById('game-log');
+    if (gameLog) gameLog.innerHTML = '';
+    
+    // 清空发言日志
+    const speechLog = document.getElementById('speech-log');
+    if (speechLog) speechLog.innerHTML = '';
+    
+    // 重置中心文本
+    const centerText = document.getElementById('center-text');
+    if (centerText) {
+        centerText.textContent = '';
+        centerText.classList.remove('opacity-100');
+    }
+    
+    // 切换到游戏页面
+    showTransitionOverlay(() => {
+        homePage.classList.add('hidden');
+        gamePage.classList.remove('hidden');
+    }, '游戏即将开始', 1000);
+    
+    // 更新 UI
+    document.getElementById('current-step').textContent = '准备中';
+    const pauseBtn = document.getElementById('pause-btn');
+    if (pauseBtn) {
+        pauseBtn.style.display = 'inline-block';
+        pauseBtn.innerHTML = '<i class="fa fa-pause"></i> 暂停';
+    }
+    
+    // 准备玩家配置（角色由前端根据设置分配，后端不再随机）
+    const configs = [];
+    const defaultNames = ["月影", "星辰", "风语", "雷鸣", "霜降", "雪落", "云深", "雾隐", "山岚", "水清"];
+    
+    // 获取角色分配（根据游戏模式）
+    const roleDistribution = {
+        6: ['werewolf', 'werewolf2', 'seer', 'witch', 'villager', 'villager2'],
+        8: ['werewolf', 'werewolf2', 'seer', 'witch', 'hunter', 'villager', 'villager2', 'villager3'],
+        10: ['werewolf', 'werewolf2', 'werewolf3', 'seer', 'witch', 'hunter', 'guard', 'villager', 'villager2', 'villager3']
+    };
+    const roleList = roleDistribution[currentGameMode] || roleDistribution[6];
+
+    for (let i = 0; i < currentGameMode; i++) {
+        const roleName = roleList[i];
+        const roleConfig = roles[roleName] || {};
+        
+        // 如果角色配置了模型，使用角色的模型；否则使用第一个 provider
+        let providerId = '';
+        let modelName = '';
+        
+        if (roleConfig.model && roleConfig.model !== 'gpt-3.5-turbo') {
+            // 使用角色配置的 model
+            modelName = roleConfig.model;
+            // 找到对应的 provider_id
+            const matchedProvider = providers.find(p => p.default_model === modelName);
+            if (matchedProvider) {
+                providerId = matchedProvider.id;
+            } else {
+                // 如果没有找到匹配的 provider，使用第一个
+                const firstProvider = providers.length > 0 ? providers[0] : null;
+                providerId = firstProvider ? firstProvider.id : '';
+            }
+        } else {
+            // 使用第一个 provider
+            const firstProvider = providers.length > 0 ? providers[0] : null;
+            providerId = firstProvider ? firstProvider.id : '';
+            modelName = firstProvider ? firstProvider.default_model : 'gpt-3.5-turbo';
+        }
+        
+        configs.push({
+            name: defaultNames[i] || ('玩家' + (i + 1)),
+            role: roleName,  // 指定角色
+            provider_id: providerId,
+            model_name: modelName,
+            personality: '',
+            use_default_personality: true
+        });
+    }
+
+    console.log('[DEBUG] Starting game with config:', configs);
+    
+    // 关闭旧连接并建立新连接
+    if (ws) {
+        try {
+            ws.close();
+        } catch(e) {}
+        ws = null;
+    }
+    
+    // 建立新连接
+    const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${location.host}/ws`;
+    console.log("Connecting to WebSocket:", wsUrl);
+    
+    ws = new WebSocket(wsUrl);
+    
+    ws.onopen = async () => {
+        console.log("WebSocket connected, sending start_game");
+        // 发送开始游戏消息
+        ws.send(JSON.stringify({
+            type: "start_game",
+            player_count: currentGameMode,
+            player_configs: configs
+        }));
+    };
+    
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        enqueueMessage(data);
+    };
+    
+    ws.onclose = () => {
+        console.log("WebSocket disconnected");
+    };
+    
+    ws.onerror = (e) => {
+        console.error("WebSocket error:", e);
+        alert("连接服务器失败，请确保服务器正在运行（http://localhost:8000）");
+    };
+}
+
+function getRoleIdForSeat(index, playerCount) {
+    const roleDistribution = {
+        6: ['werewolf', 'werewolf', 'seer', 'witch', 'villager', 'villager'],
+        8: ['werewolf', 'werewolf', 'seer', 'witch', 'hunter', 'villager', 'villager', 'villager'],
+        10: ['werewolf', 'werewolf', 'werewolf', 'seer', 'witch', 'hunter', 'guard', 'villager', 'villager', 'villager']
+    };
+    const roles = roleDistribution[playerCount] || roleDistribution[6];
+    return roles[index % roles.length];
+}
+
+function connectWS() {
+    // 关闭旧连接
+    if (ws) {
+        try { 
+            ws.close(); 
+        } catch(e) {}
+        ws = null;
+    }
+    
+    const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${location.host}/ws`;
+    console.log("Connecting to WebSocket:", wsUrl);
+    
+    ws = new WebSocket(wsUrl);
+    
+    ws.onopen = () => {
+        console.log("WebSocket connected");
+    };
+    
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        enqueueMessage(data);
+    };
+    
+    ws.onclose = () => {
+        console.log("WebSocket disconnected");
+    };
+    
+    ws.onerror = (e) => {
+        console.error("WebSocket error:", e);
+    };
+}
+
+// 停止当前游戏的辅助函数
+async function stopCurrentGame() {
+    console.log('[DEBUG] stopCurrentGame called');
+    
+    // 立即设置游戏状态为停止
+    gameState.isRunning = false;
+    gameState.isPaused = false;
+    
+    // 停止语音播放器
+    if (window.voicePlayer) {
+        window.voicePlayer.stop();
+    }
+    
+    // 停止 WebSocket 连接
+    if (ws) {
+        if (ws.readyState === WebSocket.OPEN) {
+            try {
+                ws.send(JSON.stringify({ type: "stop_game" }));
+                // 等待一小段时间确保消息发送
+                await new Promise(resolve => setTimeout(resolve, 100));
+            } catch (e) {
+                console.warn('[DEBUG] WebSocket send error during stop:', e);
+            }
+        }
+        try {
+            ws.close();
+        } catch(e) {
+            console.warn('[DEBUG] WebSocket close error during stop:', e);
+        }
+        ws = null;
+    }
+    
+    // 清空消息队列
+    messageQueue = [];
+    isProcessingMessage = false;
+    messageResumeResolve = null;
+    
+    console.log('[DEBUG] stopCurrentGame complete');
+}
+
+function togglePause() {
+    console.log('[DEBUG] togglePause called, current state:', gameState.isPaused);
+    
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        console.warn('[DEBUG] WebSocket not connected, cannot toggle pause');
+        return;
+    }
+    
+    if (!gameState.isRunning) {
+        console.warn('[DEBUG] Game is not running, cannot toggle pause');
+        return;
+    }
+    
+    try {
+        if (gameState.isPaused) {
+            ws.send(JSON.stringify({ type: "resume_game" }));
+            // 前端立即更新状态，不等待后端响应
+            gameState.isPaused = false;
+            const pauseBtn = document.getElementById('pause-btn');
+            if (pauseBtn) {
+                pauseBtn.innerHTML = '<i class="fa fa-pause"></i> 暂停';
+            }
+            console.log('[DEBUG] Resume game sent');
+        } else {
+            ws.send(JSON.stringify({ type: "pause_game" }));
+            // 前端立即更新状态，不等待后端响应
+            gameState.isPaused = true;
+            const pauseBtn = document.getElementById('pause-btn');
+            if (pauseBtn) {
+                pauseBtn.innerHTML = '<i class="fa fa-play"></i> 继续';
+            }
+            console.log('[DEBUG] Pause game sent');
+        }
+    } catch (e) {
+        console.error('[DEBUG] Error sending pause/resume command:', e);
+        // 如果发送失败，恢复按钮状态
+        const pauseBtn = document.getElementById('pause-btn');
+        if (pauseBtn) {
+            pauseBtn.innerHTML = gameState.isPaused ? '<i class="fa fa-play"></i> 继续' : '<i class="fa fa-pause"></i> 暂停';
+        }
+    }
+}
+
+function returnToHome() {
+    console.log('[DEBUG] returnToHome called');
+    
+    // 立即设置游戏状态为停止，防止任何后续操作
+    gameState.isRunning = false;
+    gameState.isPaused = false;
+    gameState.currentPhase = 'waiting';
+    
+    // 停止语音播放器
+    if (window.voicePlayer) {
+        window.voicePlayer.stop();
+    }
+    
+    // 停止 WebSocket 连接
+    if (ws) {
+        if (ws.readyState === WebSocket.OPEN) {
+            try {
+                ws.send(JSON.stringify({ type: "stop_game" }));
+                // 等待一小段时间确保消息发送
+                setTimeout(() => {
+                    try {
+                        ws.close();
+                    } catch(e) {
+                        console.warn('[DEBUG] WebSocket close error:', e);
+                    }
+                    ws = null;
+                }, 100);
+            } catch (e) {
+                console.warn('[DEBUG] WebSocket send error:', e);
+                try {
+                    ws.close();
+                } catch(closeError) {
+                    console.warn('[DEBUG] WebSocket close error:', closeError);
+                }
+                ws = null;
+            }
+        } else {
+            try {
+                ws.close();
+            } catch(e) {
+                console.warn('[DEBUG] WebSocket close error:', e);
+            }
+            ws = null;
+        }
+    }
+    
+    // 清空消息队列和状态
+    messageQueue = [];
+    isProcessingMessage = false;
+    messageResumeResolve = null;
+    
+    // 隐藏游戏页面和所有模态框
+    gamePage.classList.add('hidden');
+    homePage.classList.remove('hidden');
+    
+    // 隐藏所有可能显示的区域
+    const speechArea = document.getElementById('speech-area');
+    if (speechArea) speechArea.classList.add('hidden');
+    
+    const votingArea = document.getElementById('voting-area');
+    if (votingArea) votingArea.classList.add('hidden');
+    
+    // 清空座位容器
+    const seatsContainer = document.getElementById('seats-container');
+    if (seatsContainer) seatsContainer.innerHTML = '';
+    
+    // 清空游戏日志
+    const gameLog = document.getElementById('game-log');
+    if (gameLog) gameLog.innerHTML = '';
+    
+    // 清空发言日志
+    const speechLog = document.getElementById('speech-log');
+    if (speechLog) speechLog.innerHTML = '';
+    
+    // 重置中心文本
+    const centerText = document.getElementById('center-text');
+    if (centerText) {
+        centerText.textContent = '';
+        centerText.classList.remove('opacity-100');
+    }
+    
+    // 停止所有音效
+    if (bgm) {
+        bgm.pause();
+        bgm.currentTime = 0;
+        bgm.loop = false;
+    }
+    
+    if (nightSound) {
+        nightSound.pause();
+        nightSound.currentTime = 0;
+        nightSound.loop = false;
+    }
+    
+    if (daySound) {
+        daySound.pause();
+        daySound.currentTime = 0;
+        daySound.loop = false;
+    }
+    
+    // 重置暂停按钮状态
+    const pauseBtn = document.getElementById('pause-btn');
+    if (pauseBtn) {
+        pauseBtn.innerHTML = '<i class="fa fa-pause"></i> 暂停';
+        pauseBtn.style.display = 'none';
+    }
+    
+    // 重置游戏状态
+    gameState = {
+        players: [],
+        deadPlayers: new Set(),
+        currentPhase: 'waiting',
+        currentRound: 0,
+        isRunning: false,
+        isPaused: false,
+        autoPlay: false,
+        currentSpeakerIndex: 0,
+        speakers: [],
+        selectedVote: null,
+        selectedMVP: null,
+        gameResult: null,
+        mvp: null,
+        providers: gameState.providers,
+        playerConfigs: [],
+        gameConfigs: gameState.gameConfigs,
+        speechQueue: []
+    };
+    
+    // 重置当前步骤显示
+    document.getElementById('current-step').textContent = '准备中';
+    
+    // 重新播放主页面 BGM
+    setTimeout(() => {
+        playBGM();
+    }, 500);
+    
+    console.log('[DEBUG] returnToHome complete');
+}
+
+// ==================== 消息处理 ====================
+function enqueueMessage(data) {
+    console.log('[DEBUG] Enqueue message:', data.type, data);
+    messageQueue.push(data);
+    if (!isProcessingMessage) {
+        processNextMessage();
+    }
+}
+
+async function processNextMessage() {
+    if (messageQueue.length === 0) {
+        isProcessingMessage = false;
+        return;
+    }
+
+    // 手动模式下，如果有 messageResumeResolve，说明消息队列被暂停，等待恢复
+    // 但 vote_start、vote_result、night_result 等关键消息需要立即处理
+    if (messageResumeResolve) {
+        const nextMsg = messageQueue[0];
+        // 检查 nextMsg 是否存在，避免访问 undefined 的 type 属性
+        if (!nextMsg || !nextMsg.type) {
+            console.error('[DEBUG] Invalid message in queue:', nextMsg);
+            messageQueue.shift(); // 移除无效消息
+            setTimeout(() => processNextMessage(), 0);
+            return;
+        }
+        
+        const urgentTypes = ['vote_start', 'vote_result', 'night_result', 'phase_change', 'game_over', 'eulogy_start', 'eulogy_end'];
+        if (!urgentTypes.includes(nextMsg.type)) {
+            console.log('[DEBUG] Message queue paused, waiting for user to click next');
+            await new Promise(resolve => {
+                const check = () => {
+                    if (!messageResumeResolve) {
+                        resolve();
+                    } else {
+                        setTimeout(check, 100);
+                    }
+                };
+                check();
+            });
+        } else {
+            console.log('[DEBUG] Urgent message type:', nextMsg.type, ', processing immediately');
+        }
+    }
+
+    isProcessingMessage = true;
+    const data = messageQueue.shift();
+    
+    // 检查 data 是否为有效消息
+    if (!data || !data.type) {
+        console.error('[DEBUG] Invalid message data:', data);
+        isProcessingMessage = false;
+        // 继续处理队列中的下一条消息
+        setTimeout(() => processNextMessage(), 0);
+        return;
+    }
+    
+    try {
+        await handleGameMessage(data);
+    } catch (err) {
+        console.error('[DEBUG] Error processing message:', data.type, err);
+    }
+    // 使用 setTimeout 避免递归过深导致调用栈溢出，同时让 UI 有机会更新
+    setTimeout(() => processNextMessage(), 0);
+}
+
+async function handleGameMessage(data) {
+    const type = data.type;
+    console.log('[DEBUG] Handling message type:', type, data);
+
+    switch (type) {
+        case "game_start":
+            await onGameStart(data);
+            break;
+        case "phase_change":
+            await onPhaseChange(data);
+            return;
+        case "sub_phase":
+            updateCenterText(data.message);
+            updateGameStep(data.message);
+            // 根据子阶段触发对应角色的睁眼动画
+            await playSubPhaseAnimation(data.sub_phase);
+            break;
+        case "night_action_log":
+            if (data.actions) {
+                await playNightActionAnimations(data.actions);
+            }
+            return;
+        case "witch_info":
+            showCenterBanner("女巫得知", `今晚${data.killed_player}被狼人杀害`, "kill-banner", 2000);
+            break;
+        case "night_result":
+            await onNightResult(data);
+            return;
+        case "dawn":
+            updateCenterText("天亮了...");
+            updateGameStep('天亮了');
+            break;
+        case "current_speaker":
+            await onCurrentSpeaker(data);
+            return;
+        case "speech":
+            await onSpeech(data);
+            return;
+        case "vote_start":
+            await onVoteStart(data);
+            return;
+        case "vote_details":
+            await onVoteDetails(data);
+            return;
+        case "vote_result":
+            await onVoteResult(data);
+            return;
+        case "hunter_shoot":
+            showCenterBanner("猎人发动技能", data.message, "kill-banner", 2000);
+            break;
+        case "hunter_result":
+            await onHunterResult(data);
+            return;
+        case "eulogy_start":
+            showEulogyOverlay(data.player || '', data.message || '');
+            return;
+        case "eulogy_speech":
+            hideEulogyOverlay();
+            await onSpeech({
+                player: data.player,
+                player_id: data.player_id,
+                content: data.content,
+                is_eulogy: true
+            });
+            return;
+        case "eulogy_end":
+            hideEulogyOverlay();
+            return;
+        case "ai_thinking":
+            break;
+        case "ai_reasoning":
+            addReasoningMessage(data.player, data.reasoning);
+            return;
+        case "game_paused":
+            gameState.isPaused = true;
+            const pauseBtn = document.getElementById('pause-btn');
+            if (pauseBtn) {
+                pauseBtn.innerHTML = '<i class="fa fa-play"></i> 继续';
+            }
+            break;
+        case "game_resumed":
+            gameState.isPaused = false;
+            const resumeBtn = document.getElementById('pause-btn');
+            if (resumeBtn) {
+                resumeBtn.innerHTML = '<i class="fa fa-pause"></i> 暂停';
+            }
+            break;
+        case "game_stopped":
+            console.log('[DEBUG] Game stopped by server');
+            // 清空消息队列
+            messageQueue = [];
+            isProcessingMessage = false;
+            break;
+        case "game_over":
+            await onGameOver(data);
+            return;
+        case "error":
+            console.error('[DEBUG] Error from server:', data.message);
+            alert(data.message);
+            break;
+        default:
+            console.warn('[DEBUG] Unknown message type:', type);
+    }
+}
+
+async function onGameStart(data) {
+    console.log('[DEBUG] Game start data:', data);
+    
+    // 重置游戏状态，确保完全清理之前的游戏
+    gameState.players = data.players;
+    gameState.deadPlayers = new Set();
+    gameState.isRunning = true;
+    gameState.isPaused = false;
+    gameState.currentRound = 0;
+    gameState.currentPhase = 'waiting';
+    gameState.currentSpeakerIndex = 0;
+    gameState.speakers = [];
+    gameState.selectedVote = null;
+    gameState.selectedMVP = null;
+    gameState.gameResult = null;
+    gameState.mvp = null;
+    gameState.speechQueue = [];
+    
+    // 清空消息队列
+    messageQueue = [];
+    isProcessingMessage = false;
+    messageResumeResolve = null;
+    
+    // 清空座位容器
+    const seatsContainer = document.getElementById('seats-container');
+    if (!seatsContainer) {
+        console.error('[DEBUG] Seats container not found!');
+        return;
+    }
+    seatsContainer.innerHTML = '';
+    
+    // 清空游戏日志
+    const gameLog = document.getElementById('game-log');
+    if (gameLog) gameLog.innerHTML = '';
+    
+    // 清空发言日志
+    const speechLog = document.getElementById('speech-log');
+    if (speechLog) speechLog.innerHTML = '';
+    
+    // 重置中心文本
+    const centerText = document.getElementById('center-text');
+    if (centerText) {
+        centerText.textContent = '';
+        centerText.classList.remove('opacity-100');
+    }
+    
+    // 隐藏发言和投票区域
+    const speechArea = document.getElementById('speech-area');
+    if (speechArea) speechArea.classList.add('hidden');
+    
+    const votingArea = document.getElementById('voting-area');
+    if (votingArea) votingArea.classList.add('hidden');
+    
+    // 重置暂停按钮
+    const pauseBtn = document.getElementById('pause-btn');
+    if (pauseBtn) {
+        pauseBtn.innerHTML = '<i class="fa fa-pause"></i> 暂停';
+        pauseBtn.style.display = 'inline-block';
+    }
+    
+    renderSeats();
+    updateCenterText('游戏开始');
+    
+    // 游戏开始时不播放BGM，等待阶段切换时播放对应的音效
+}
+
+async function onPhaseChange(data) {
+    const isNight = data.phase === "night";
+    gameState.currentPhase = data.phase;
+    gameState.currentRound = data.round;
+
+    // 停止所有循环音效和BGM
+    if (bgm) {
+        bgm.pause();
+        bgm.currentTime = 0;
+        bgm.loop = false;
+    }
+    if (nightSound) {
+        nightSound.pause();
+        nightSound.currentTime = 0;
+        nightSound.loop = false;
+    }
+    if (daySound) {
+        daySound.pause();
+        daySound.currentTime = 0;
+        daySound.loop = false;
+    }
+
+    // 播放阶段音效（循环播放）
+    if (isNight) {
+        if (nightSound) {
+            nightSound.loop = true;
+            nightSound.volume = 0.3;
+            nightSound.play().catch(e => console.log('夜晚音效播放失败:', e));
+        }
+    } else {
+        if (daySound) {
+            daySound.loop = true;
+            daySound.volume = 0.3;
+            daySound.play().catch(e => console.log('白天音效播放失败:', e));
+        }
+    }
+
+    await new Promise(resolve => {
+        showTransitionOverlay(() => {
+            const badge = document.getElementById('current-step');
+            badge.textContent = isNight ? "夜晚" : "白天";
+
+            // 添加/移除夜晚效果
+            const seatsContainer = document.getElementById('seats-container');
+            if (isNight) {
+                seatsContainer.classList.add('night');
+            } else {
+                seatsContainer.classList.remove('night');
+            }
+
+            resolve();
+        }, isNight ? "夜幕降临" : "黎明破晓", isNight ? 3000 : 2500);
+    });
+
+    updateGameStep(isNight ? '天黑请闭眼' : '天亮了');
+    await delay(isNight ? 3500 : 3000);
+}
+
+async function onNightResult(data) {
+    if (data.deaths && data.deaths.length > 0) {
+        updateCenterText(`昨晚 ${data.deaths.join("、")} 死亡`);
+        showCenterBanner("昨夜惨案", `${data.deaths.join("、")} 死亡`, "kill-banner", 3000);
+
+        for (let name of data.deaths) {
+            gameState.deadPlayers.add(name);
+            const deadPlayer = gameState.players.find(p => p.name === name);
+            if (deadPlayer) {
+                deadPlayer.is_alive = false;
+                const seat = document.querySelector(`.seat[data-player-id="${deadPlayer.id}"]`);
+                if (seat) {
+                    seat.classList.add('seat-dead');
+                    const avatarWrapper = seat.querySelector('.avatar-wrapper');
+                    if (avatarWrapper) {
+                        avatarWrapper.classList.add('grayscale', 'brightness-50');
+                    }
+                    const nameEl = seat.querySelector('.player-name');
+                    if (nameEl) {
+                        nameEl.style.textDecoration = 'line-through';
+                        nameEl.style.color = '#666';
+                    }
+                    shakeElement(seat, 1500);
+                }
+            }
+            await delay(500);
+        }
+        await delay(1500);
+    } else {
+        updateCenterText("昨晚是平安夜");
+        showCenterBanner("平安夜", "昨晚无人死亡", "dawn-banner", 2000);
+        await delay(2300);
+    }
+}
+
+async function onCurrentSpeaker(data) {
+    updateCenterText(`${data.message}`);
+    highlightSpeaker(data.player_id);
+    await delay(800);
+}
+
+let currentSpeechTimeout = null;
+let currentTypeWriterTimeout = null;
+let currentSpeechResolve = null;  // 保存当前发言的 resolve 函数
+
+function onSpeech(data) {
+    return new Promise((resolve) => {
+        const player = gameState.players.find(p => p.name === data.player);
+        const roleInfo = getRoleInfo(player?.role_id || player?.role);
+        
+        // 这个闭包内部的标志，表示这个发言是否已经被跳过
+        let speechSkipped = false;
+
+        // 显示发言区域
+        const speechArea = document.getElementById('speech-area');
+        if (!speechArea) {
+            console.error('[DEBUG] Speech area not found!');
+            resolve();
+            return;
+        }
+
+        // 如果是非自动播放模式且已经有发言在显示，则将新发言加入队列
+        const isCurrentlyVisible = !speechArea.classList.contains('hidden');
+
+        if (!gameState.autoPlay && isCurrentlyVisible) {
+            console.log('[DEBUG] Queueing speech for manual mode');
+            // 将发言加入队列，等待用户点击"下一位"
+            if (!gameState.speechQueue) {
+                gameState.speechQueue = [];
+            }
+            gameState.speechQueue.push({ data, resolve });
+            console.log('[DEBUG] Speech queued');
+            return;
+        }
+
+        // 显示发言
+        speechArea.classList.remove('hidden');
+        console.log('[DEBUG] Speech area now visible');
+
+        const speakerAvatar = document.getElementById('speaker-avatar');
+        const speakerName = document.getElementById('speaker-name');
+        const speakerRole = document.getElementById('speaker-role');
+        const speechText = document.getElementById('speech-text');
+
+        if (!speakerAvatar || !speakerName || !speakerRole || !speechText) {
+            console.error('[DEBUG] Speech elements not found!');
+            resolve();
+            return;
+        }
+
+        speakerAvatar.src = getAvatarForRole(player?.role_id || player?.role || 'villager');
+        speakerName.textContent = data.player;
+        speakerRole.textContent = roleInfo ? roleInfo.name : '未知';
+
+        speechText.textContent = '';
+
+        // 保存当前发言的 resolve 函数，以便在用户点击"下一位"时调用
+        currentSpeechResolve = () => {
+            console.log('[DEBUG] currentSpeechResolve called, marking speech as skipped');
+            speechSkipped = true;
+            resolve();
+        };
+
+        // 播放语音
+        const roleType = player ? player.role : 'villager';
+        // 使用角色配置的音色，如果没有配置则使用角色类型
+        const voiceType = player && roles[roleType] && roles[roleType].voice ? roles[roleType].voice : roleType;
+        const voicePromise = window.voicePlayer ? 
+            window.voicePlayer.speak(data.content, voiceType, data.player) : 
+            Promise.resolve();
+
+        // 打字机效果
+        let i = 0;
+        const text = data.content || '';
+
+        function typeWriter() {
+            if (i < text.length) {
+                speechText.textContent += text.charAt(i);
+                i++;
+                currentTypeWriterTimeout = setTimeout(typeWriter, 50);
+            }
+        }
+        typeWriter();
+
+        // 等待语音播放和打字机效果完成
+        Promise.all([voicePromise]).then(() => {
+            // 检查这个发言是否已经被跳过
+            if (speechSkipped) {
+                console.log('[DEBUG] Speech was skipped, not calling _handleSpeechCompletion');
+                return;
+            }
+            // 语音播放正常完成
+            console.log('[DEBUG] Voice playback completed successfully');
+            _handleSpeechCompletion(data, resolve);
+        }).catch((error) => {
+            // 检查这个发言是否已经被跳过
+            if (speechSkipped) {
+                console.log('[DEBUG] Speech was skipped, not calling _handleSpeechCompletion on error');
+                return;
+            }
+            // 语音播放出错，但继续游戏流程
+            console.error('[DEBUG] Voice playback error, but continuing game flow:', error);
+            _handleSpeechCompletion(data, resolve);
+        });
+    });
+}
+
+// 处理语音播放完成后的逻辑
+function _handleSpeechCompletion(data, resolve) {
+    // 清除 currentSpeechResolve，因为发言已经完成
+    currentSpeechResolve = null;
+    
+    // 非自动播放模式下保持发言区域显示，让用户点击"下一位"按钮
+    // 自动播放模式下不隐藏，让下一条消息覆盖
+    unhighlightSpeaker(data.player_id);
+
+    console.log('[DEBUG] Speech display complete, autoPlay:', gameState.autoPlay);
+
+    // 如果是自动播放模式，检查是否有队列中的发言
+    if (gameState.autoPlay && gameState.speechQueue && gameState.speechQueue.length > 0) {
+        const nextData = gameState.speechQueue.shift();
+        console.log('[DEBUG] Auto playing next queued speech:', nextData.data.player);
+        setTimeout(() => onSpeech(nextData.data).then(nextData.resolve), 500);
+        resolve();
+    } else if (!gameState.autoPlay) {
+        // 手动模式：发言显示完毕，暂停消息队列，等待用户点击"下一位"
+        console.log('[DEBUG] Manual mode: pausing message queue, waiting for user to click next button');
+        console.log('[DEBUG] Current speech queue length:', gameState.speechQueue ? gameState.speechQueue.length : 0);
+        // 设置 messageResumeResolve 来暂停整个消息队列
+        // 如果已经有 messageResumeResolve，先清理旧的，避免内存泄漏和状态混乱
+        if (messageResumeResolve) {
+            console.log('[DEBUG] Clearing stale messageResumeResolve before setting new one');
+            const oldResolve = messageResumeResolve;
+            messageResumeResolve = null;
+            oldResolve();
+        }
+        messageResumeResolve = resolve;
+    } else {
+        resolve();
+    }
+}
+
+async function onVoteStart(data) {
+    updateCenterText("投票环节开始");
+    // 播放投票音效
+    playSound({id: 'vote-sound'});
+    showCenterBanner("投票环节", "请各位玩家投票", "vote-banner", 2500);
+    await delay(2800);
+}
+
+async function onVoteDetails(data) {
+    await playVoteAnimationWithDetails(data.votes);
+}
+
+async function playVoteAnimationWithDetails(votes) {
+    console.log('[DEBUG] playVoteAnimationWithDetails called with votes:', votes);
+    if (!votes || votes.length === 0) {
+        console.log('[DEBUG] No votes to display');
+        return;
+    }
+    
+    // 先隐藏发言区域，避免重叠
+    const speechArea = document.getElementById('speech-area');
+    if (speechArea) {
+        speechArea.classList.add('hidden');
+    }
+    
+    const votingArea = document.getElementById('voting-area');
+    const votingPlayers = document.getElementById('voting-players');
+    const submitVoteBtn = document.getElementById('submit-vote-btn');
+    
+    if (!votingArea || !votingPlayers || !submitVoteBtn) {
+        console.error('[DEBUG] Voting elements not found!');
+        return;
+    }
+    
+    // 清除之前的投票状态
+    votingArea.classList.remove('hidden');
+    votingPlayers.innerHTML = '';
+    
+    const alivePlayers = gameState.players.filter(p => p.is_alive);
+    console.log('[DEBUG] Alive players for voting:', alivePlayers.map(p => p.name));
+    
+    alivePlayers.forEach(player => {
+        const playerEl = document.createElement('div');
+        playerEl.className = 'voting-player flex flex-col items-center cursor-pointer hover:scale-110 transition-transform';
+        playerEl.dataset.playerId = player.id;
+        
+        playerEl.innerHTML = `
+            <div class="w-12 h-12 rounded-full overflow-hidden border-2 border-gothic-red">
+                <img src="${getAvatarForRole(player?.role_id || player?.role || 'villager')}" alt="${player.name}" class="w-full h-full object-cover">
+            </div>
+            <div class="text-xs font-gothic mt-1 text-gothic-light text-center">${player.name}</div>
+            <div class="vote-count" style="display:none">0</div>
+        `;
+
+        playerEl.addEventListener('click', () => {
+            console.log('[DEBUG] Voting player clicked:', player.name);
+            playSound({id: 'button-click'});
+            document.querySelectorAll('.voting-player').forEach(p => {
+                p.querySelector('div').classList.remove('border-gothic-gold');
+            });
+            playerEl.querySelector('div').classList.add('border-gothic-gold');
+            gameState.selectedVote = player.id;
+            console.log('[DEBUG] Selected vote:', gameState.selectedVote);
+            if (submitVoteBtn) {
+                submitVoteBtn.disabled = false;
+            }
+        });
+        
+        votingPlayers.appendChild(playerEl);
+    });
+    
+    if (submitVoteBtn) {
+        submitVoteBtn.disabled = true;
+    }
+    
+    const delayPerVote = 1000;
+    const voteCountMap = {};
+    
+    for (let i = 0; i < votes.length; i++) {
+        const v = votes[i];
+        console.log('[DEBUG] Processing vote:', v);
+        voteCountMap[v.target] = (voteCountMap[v.target] || 0) + 1;
+        
+        // 播放投票音效
+        playSound({id: 'vote-sound'});
+        
+        const targetPlayer = gameState.players.find(p => p.name === v.target);
+        if (targetPlayer) {
+            const targetSeat = document.querySelector(`.seat[data-player-id="${targetPlayer.id}"]`);
+            if (targetSeat) {
+                targetSeat.classList.add('seat-active');
+                const count = voteCountMap[v.target];
+                const targetEl = document.querySelector(`.voting-player[data-player-id="${targetPlayer.id}"]`);
+                if (targetEl) {
+                    const countBadge = targetEl.querySelector('.vote-count');
+                    if (countBadge) {
+                        countBadge.textContent = count;
+                        countBadge.style.display = 'flex';
+                    }
+                }
+            }
+        }
+        
+        await delay(delayPerVote);
+        
+        if (targetPlayer) {
+            const targetSeat = document.querySelector(`.seat[data-player-id="${targetPlayer.id}"]`);
+            if (targetSeat) {
+                targetSeat.classList.remove('seat-active');
+            }
+        }
+    }
+    
+    await delay(500);
+    console.log('[DEBUG] Vote animation complete');
+}
+
+async function onVoteResult(data) {
+    if (data.eliminated) {
+        updateCenterText(`${data.eliminated} 被投票放逐`);
+        gameState.deadPlayers.add(data.eliminated);
+
+        const eliminatedPlayer = gameState.players.find(p => p.name === data.eliminated);
+        if (eliminatedPlayer) {
+            eliminatedPlayer.is_alive = false;
+            const seat = document.querySelector(`.seat[data-player-id="${eliminatedPlayer.id}"]`);
+            if (seat) {
+                seat.classList.add('seat-dead');
+                const avatarWrapper = seat.querySelector('.avatar-wrapper');
+                if (avatarWrapper) {
+                    avatarWrapper.classList.add('grayscale', 'brightness-50');
+                }
+                const nameEl = seat.querySelector('.player-name');
+                if (nameEl) {
+                    nameEl.style.textDecoration = 'line-through';
+                    nameEl.style.color = '#666';
+                }
+                shakeElement(seat, 1500);
+            }
+        }
+        showCenterBanner("放逐", `${data.eliminated} 被投票放逐`, "kill-banner", 2500);
+        await delay(3000);
+    } else {
+        const resultMsg = data.message || "平票，无人被放逐";
+        updateCenterText(resultMsg);
+        showCenterBanner("平票", "无人被放逐", "", 2000);
+        await delay(2300);
+    }
+    
+    // 隐藏投票区域
+    document.getElementById('voting-area').classList.add('hidden');
+}
+
+async function onHunterResult(data) {
+    gameState.deadPlayers.add(data.target);
+    const targetPlayer = gameState.players.find(p => p.name === data.target);
+    if (targetPlayer) {
+        targetPlayer.is_alive = false;
+        const seat = document.querySelector(`.seat[data-player-id="${targetPlayer.id}"]`);
+        if (seat) {
+            seat.classList.add('seat-dead');
+            const avatarWrapper = seat.querySelector('.avatar-wrapper');
+            if (avatarWrapper) {
+                avatarWrapper.classList.add('grayscale', 'brightness-50');
+            }
+            const nameEl = seat.querySelector('.player-name');
+            if (nameEl) {
+                nameEl.style.textDecoration = 'line-through';
+                nameEl.style.color = '#666';
+            }
+        }
+    }
+    showCenterBanner("猎人开枪", `${data.hunter} → ${data.target}`, "kill-banner", 2500);
+    await delay(2800);
+}
+
+function addReasoningMessage(player, reasoning) {
+    console.log(`[AI推理] ${player}: ${reasoning}`);
+    
+    // 将推理信息添加到游戏日志
+    const gameLog = document.getElementById('game-log');
+    if (gameLog) {
+        const logEntry = document.createElement('div');
+        logEntry.className = 'log-entry text-xs text-gothic-gold opacity-70 mb-1';
+        logEntry.innerHTML = `<span class="text-gothic-red">[AI推理]</span> ${player}: ${reasoning}`;
+        gameLog.appendChild(logEntry);
+        gameLog.scrollTop = gameLog.scrollHeight;
+    }
+}
+
+async function onGameOver(data) {
+    gameState.isRunning = false;
+    gameState.gameResult = data.winner;
+    
+    // 停止语音播放器
+    if (window.voicePlayer) {
+        window.voicePlayer.stop();
+    }
+    
+    // 停止所有循环音效和BGM
+    if (bgm) {
+        bgm.pause();
+        bgm.currentTime = 0;
+        bgm.loop = false;
+    }
+    if (nightSound) {
+        nightSound.pause();
+        nightSound.currentTime = 0;
+        nightSound.loop = false;
+    }
+    if (daySound) {
+        daySound.pause();
+        daySound.currentTime = 0;
+        daySound.loop = false;
+    }
+    
+    await delay(1500);
+    
+    // 显示游戏结果
+    updateCenterText(data.winner === "good" ? "好人胜利！" : "狼人胜利！");
+    
+    // 播放结果音效
+    if (data.winner === "good") {
+        playSound({id: 'win-sound'});
+    } else {
+        playSound({id: 'lose-sound'});
+    }
+    
+    await delay(2000);
+    
+    // 显示 MVP 投票
+    showMVPVote(data.players);
+}
+
+// ==================== MVP 投票 ====================
+function showMVPVote(players) {
+    // 生成 MVP 候选人
+    const candidates = [];
+    
+    // 狼人胜利时，选择存活的狼人
+    if (gameState.gameResult === 'wolf') {
+        const aliveWolves = players.filter(p => p.is_alive && p.role === 'werewolf');
+        candidates.push(...aliveWolves);
+    }
+    
+    // 好人胜利时，选择存活的神民
+    if (gameState.gameResult === 'good') {
+        const aliveSpecialRoles = players.filter(p => p.is_alive && ['seer', 'witch', 'hunter', 'guard'].includes(p.role));
+        candidates.push(...aliveSpecialRoles);
+    }
+    
+    // 如果候选人不足，添加其他存活玩家
+    const alivePlayers = players.filter(p => p.is_alive);
+    alivePlayers.forEach(player => {
+        if (!candidates.includes(player)) {
+            candidates.push(player);
+        }
+    });
+    
+    // 限制候选人数量
+    const mvpCandidates = candidates.slice(0, 5);
+    
+    // 渲染 MVP 候选人
+    const mvpCandidatesEl = document.getElementById('mvp-candidates');
+    mvpCandidatesEl.innerHTML = '';
+    
+    mvpCandidates.forEach(candidate => {
+        const candidateEl = document.createElement('div');
+        candidateEl.className = 'mvp-candidate flex flex-col items-center cursor-pointer hover:scale-110 transition-transform';
+        candidateEl.dataset.playerId = candidate.id;
+        
+        candidateEl.innerHTML = `
+            <div class="w-16 h-16 rounded-full overflow-hidden border-2 border-gothic-red">
+                <img src="${getAvatarForRole(candidate.role)}" alt="${candidate.name}" class="w-full h-full object-cover">
+            </div>
+            <div class="text-xs font-gothic mt-1 text-gothic-light text-center">${candidate.name}</div>
+        `;
+        
+        candidateEl.addEventListener('click', () => {
+            console.log('[DEBUG] MVP candidate clicked:', candidate.name);
+            playSound({id: 'button-click'});
+            document.querySelectorAll('.mvp-candidate').forEach(c => {
+                c.querySelector('div').classList.remove('border-gothic-gold');
+            });
+            candidateEl.querySelector('div').classList.add('border-gothic-gold');
+            gameState.selectedMVP = candidate.id;
+            console.log('[DEBUG] Selected MVP:', gameState.selectedMVP);
+            document.getElementById('submit-mvp-btn').disabled = false;
+        });
+        
+        mvpCandidatesEl.appendChild(candidateEl);
+    });
+    
+    // 显示 MVP 投票模态框
+    toggleMvpVoteModal();
+    document.getElementById('submit-mvp-btn').disabled = true;
+}
+
+function submitMVPVote() {
+    if (gameState.selectedMVP === null) {
+        alert('请选择 MVP');
+        return;
+    }
+    
+    const mvpPlayer = gameState.players.find(p => p.id === gameState.selectedMVP);
+    gameState.mvp = mvpPlayer;
+    
+    // 播放 MVP 音效
+    playSound({id: 'mvp-sound'});
+    
+    toggleMvpVoteModal();
+    showGameOverModal();
+}
+
+function showGameOverModal() {
+    document.getElementById('game-result-title').textContent = gameState.gameResult === 'good' ? '好人胜利！' : '狼人胜利！';
+    
+    document.getElementById('mvp-avatar').src = getAvatarForRole(gameState.mvp ? gameState.mvp.role : 'villager');
+    document.getElementById('mvp-name').textContent = gameState.mvp ? gameState.mvp.name : '';
+    
+    const finalRoles = document.getElementById('final-roles');
+    finalRoles.innerHTML = '';
+    
+    gameState.players.forEach(player => {
+        const roleEl = document.createElement('div');
+        roleEl.className = 'flex flex-col items-center';
+        
+        const roleInfo = getRoleInfo(player.role);
+        const isWolf = player.role === 'werewolf';
+        const borderColor = isWolf ? 'border-gothic-red' : 'border-gothic-gold';
+        const textColor = isWolf ? 'text-gothic-red' : 'text-gothic-gold';
+        const roleName = roleInfo ? roleInfo.name : '平民';
+        
+        roleEl.innerHTML = `
+            <div class="w-12 h-12 rounded-full overflow-hidden border-2 ${borderColor} ${player.is_alive ? '' : 'opacity-50'}">
+                <img src="${getAvatarForRole(player?.role_id || player?.role || 'villager')}" alt="${player.name}" class="w-full h-full object-cover">
+            </div>
+            <div class="text-xs font-gothic mt-1 ${textColor} text-center">${player.name}</div>
+            <div class="text-xs ${isWolf ? 'text-gothic-red' : 'text-gothic-gold'}">${roleName}</div>
+        `;
+
+        finalRoles.appendChild(roleEl);
+    });
+
+    toggleGameOverModal();
+}
+
+// ==================== 游戏 UI 更新 ====================
+function renderSeats() {
+    console.log('[DEBUG] renderSeats called, players:', gameState.players);
+    const seatsContainer = document.getElementById('seats-container');
+    if (!seatsContainer) {
+        console.error('[DEBUG] Seats container not found!');
+        return;
+    }
+
+    seatsContainer.innerHTML = '';
+
+    const seatCount = gameState.players.length;
+    if (seatCount === 0) {
+        console.warn('[DEBUG] No players to render seats');
+        return;
+    }
+
+    const angleStep = (2 * Math.PI) / seatCount;
+    // 根据人数动态调整半径，确保不同人数下座位分布均匀且不重叠
+    const radius = seatCount <= 6 ? 40 : seatCount <= 8 ? 42 : 44;
+
+    gameState.players.forEach((player, index) => {
+        console.log('[DEBUG] Rendering seat for player:', player.name, player.role, 'role_id:', player.role_id);
+        const angle = index * angleStep - Math.PI / 2;
+        const x = 50 + radius * Math.cos(angle);
+        const y = 50 + radius * Math.sin(angle);
+
+        const seat = document.createElement('div');
+        seat.className = 'seat absolute w-16 h-28 flex flex-col items-center cursor-pointer';
+        seat.style.left = `${x}%`;
+        seat.style.top = `${y}%`;
+        seat.style.transform = 'translate(-50%, -50%)';
+        seat.dataset.playerId = player.id;
+
+        // 使用 role_id 优先获取角色信息
+        const roleId = player.role_id || player.role;
+        const roleInfo = getRoleInfo(player.role);  // 仍然用基础角色获取显示名称
+        const isDead = !player.is_alive;
+
+        if (isDead) {
+            seat.classList.add('seat-dead');
+        }
+
+        // 使用 getAvatarForRole 获取头像（会根据 model 自动匹配 logo）
+        const avatarUrl = getAvatarForRole(player?.role_id || player?.role || 'villager');
+
+        seat.innerHTML = `
+            <div class="avatar-wrapper w-12 h-12 rounded-full overflow-hidden border-2 border-gothic-red ${isDead ? 'grayscale brightness-50' : ''}">
+                <img src="${avatarUrl}" alt="${player.name}" class="w-full h-full object-cover">
+            </div>
+            <div class="player-name text-xs font-gothic mt-1 text-gothic-light text-center">${player.name}</div>
+            <div class="player-role-label">${roleInfo ? roleInfo.name : '平民'}</div>
+        `;
+
+        seatsContainer.appendChild(seat);
+    });
+
+    console.log('[DEBUG] Seats rendered successfully');
+}
+
+function highlightSpeaker(playerId) {
+    document.querySelectorAll('.seat').forEach(s => s.classList.remove('seat-active'));
+    const seat = document.querySelector(`.seat[data-player-id="${playerId}"]`);
+    if (seat) seat.classList.add('seat-active');
+}
+
+function unhighlightSpeaker(playerId) {
+    const seat = document.querySelector(`.seat[data-player-id="${playerId}"]`);
+    if (seat) seat.classList.remove('seat-active');
+}
+
+function updateCenterText(text) {
+    const centerText = document.getElementById('center-text');
+    centerText.textContent = text;
+    centerText.classList.add('opacity-100');
+    
+    setTimeout(() => {
+        centerText.classList.remove('opacity-100');
+    }, 3000);
+}
+
+function updateGameStep(stepText) {
+    document.getElementById('current-step').textContent = stepText;
+    
+    const gameSteps = [
+        '过场等待',
+        'AI 入座',
+        '天黑请闭眼',
+        '狼人行动',
+        '预言家验人',
+        '女巫行动',
+        '天亮了',
+        '发言环节',
+        '投票放逐'
+    ];
+    
+    const stepIndex = gameSteps.indexOf(stepText);
+    const progress = ((stepIndex + 1) / gameSteps.length) * 100;
+    document.querySelector('.progress-bar').style.setProperty('--progress', `${progress}%`);
+    
+    // 更新游戏信息
+    let gameInfo = '';
+    switch (stepText) {
+        case '过场等待':
+            gameInfo = '游戏正在准备中，请稍候...';
+            break;
+        case 'AI 入座':
+            gameInfo = 'AI 角色正在入座，请稍候...';
+            break;
+        case '天黑请闭眼':
+            gameInfo = '天黑了，请所有玩家闭眼...';
+            break;
+        case '狼人行动':
+            gameInfo = '狼人请睁眼，商量要杀的人...';
+            break;
+        case '预言家验人':
+            gameInfo = '预言家请睁眼，选择要验的人...';
+            break;
+        case '女巫行动':
+            gameInfo = '女巫请睁眼，是否使用药水...';
+            break;
+        case '天亮了':
+            gameInfo = '天亮了，所有人请睁眼...';
+            break;
+        case '发言环节':
+            gameInfo = '发言环节，请按顺序发言...';
+            break;
+        case '投票放逐':
+            gameInfo = '投票环节，请选择要放逐的玩家...';
+            break;
+        default:
+            gameInfo = stepText;
+    }
+    
+    document.getElementById('game-info').textContent = gameInfo;
+}
+
+function showCenterBanner(title, subtitle, bannerClass = "", duration = 2500) {
+    const seatsContainer = document.getElementById('seats-container');
+    if (!seatsContainer) return;
+    
+    const banner = document.createElement('div');
+    banner.className = `center-banner ${bannerClass}`;
+    banner.innerHTML = `<h3>${title}</h3><p>${subtitle}</p>`;
+    seatsContainer.appendChild(banner);
+    
+    setTimeout(() => {
+        banner.style.animation = 'bannerFadeOut 0.5s ease forwards';
+        setTimeout(() => banner.remove(), 500);
+    }, duration);
+}
+
+async function playNightActionAnimations(actions) {
+    const actionDelay = 2800;
+
+    // 进入夜晚模式 - 整体变暗
+    const seatsContainer = document.getElementById('seats-container');
+    if (seatsContainer) seatsContainer.classList.add('night-mode');
+
+    // 夜晚音效已在 onPhaseChange 中循环播放，这里不再重复播放
+
+    // 追踪本轮动画中已经使用过的狼人，确保每个狼人行动都能匹配到不同的狼人玩家
+    const usedWerewolfIds = new Set();
+
+    for (let i = 0; i < actions.length; i++) {
+        const a = actions[i];
+        let playerObj = gameState.players.find(p => p.name === a.player);
+
+        // 如果 player 是"狼人"（字符串），找到第一个未被使用过的存活狼人玩家
+        if (!playerObj && a.player === '狼人') {
+            playerObj = gameState.players.find(p => p.role === 'werewolf' && p.is_alive && !usedWerewolfIds.has(p.id));
+            // 如果所有狼人都已使用过，则重置并重新分配
+            if (!playerObj) {
+                usedWerewolfIds.clear();
+                playerObj = gameState.players.find(p => p.role === 'werewolf' && p.is_alive);
+            }
+            if (playerObj) {
+                usedWerewolfIds.add(playerObj.id);
+            }
+        }
+
+        if (!playerObj) continue;
+
+        const actionLower = a.action.toLowerCase();
+        let skillType = null;
+        let targetName = null;
+        let nightClass = null;
+        let soundId = null;
+
+        if (actionLower.includes('击杀') || actionLower.includes('杀害') || actionLower.includes('选择击杀')) {
+            skillType = 'werewolf';
+            nightClass = 'night-werewolf-active';
+            targetName = extractTargetFromAction(a.action);
+            soundId = 'werewolf-sound';
+        } else if (actionLower.includes('查验')) {
+            skillType = 'seer';
+            nightClass = 'night-seer-active';
+            targetName = extractTargetFromAction(a.action);
+            soundId = 'seer-sound';
+        } else if (actionLower.includes('投毒') || actionLower.includes('毒杀')) {
+            skillType = 'witch-poison';
+            nightClass = 'night-witch-active';
+            targetName = extractTargetFromAction(a.action);
+            soundId = 'witch-sound';
+        } else if (actionLower.includes('救')) {
+            skillType = 'witch-heal';
+            nightClass = 'night-witch-active';
+            targetName = extractTargetFromAction(a.action);
+            soundId = 'witch-sound';
+        } else if (actionLower.includes('保护')) {
+            skillType = 'guard';
+            nightClass = 'night-guard-active';
+            targetName = extractTargetFromAction(a.action);
+            soundId = 'witch-sound';  // 守卫暂时使用女巫音效
+        }
+
+        // 播放技能音效
+        if (soundId) {
+            playSound({id: soundId});
+        }
+
+        if (skillType && targetName) {
+            const targetPlayer = gameState.players.find(p => p.name === targetName);
+            if (targetPlayer) {
+                const actorSeat = document.querySelector(`.seat[data-player-id="${playerObj.id}"]`);
+                const targetSeat = document.querySelector(`.seat[data-player-id="${targetPlayer.id}"]`);
+
+                // 添加角色特定高亮
+                if (actorSeat && nightClass) actorSeat.classList.add(nightClass);
+                if (targetSeat) targetSeat.classList.add('seat-active');
+
+                // 显示连线动画
+                showActionLine(actorSeat, targetSeat, skillType, actionDelay);
+
+                // 显示行动文字提示
+                showActionTooltip(actorSeat, a.action);
+
+                setTimeout(() => {
+                    if (actorSeat && nightClass) actorSeat.classList.remove(nightClass);
+                    if (targetSeat) targetSeat.classList.remove('seat-active');
+                }, actionDelay);
+            }
+        } else if (nightClass) {
+            // 只有行动者没有目标的情况（如女巫未使用药水）
+            const actorSeat = document.querySelector(`.seat[data-player-id="${playerObj.id}"]`);
+            if (actorSeat) {
+                actorSeat.classList.add(nightClass);
+                showActionTooltip(actorSeat, a.action);
+                setTimeout(() => {
+                    if (actorSeat) actorSeat.classList.remove(nightClass);
+                }, actionDelay);
+            }
+        }
+
+        await delay(actionDelay);
+    }
+
+    // 退出夜晚模式
+    if (seatsContainer) seatsContainer.classList.remove('night-mode');
+}
+
+function extractTargetFromAction(actionText) {
+    const patterns = [
+        /击杀\s*(.+)/, /杀害\s*(.+)/, /选择击杀\s*(.+)/,
+        /查验了\s*(.+)/, /查验\s*(.+)/,
+        /对\s*(.+?)\s*使用/, /投毒\s*(.+)/, /毒杀\s*(.+)/,
+        /守护了\s*(.+)/, /守护\s*(.+)/,
+        /救了\s*(.+)/, /保护了\s*(.+)/
+    ];
+    for (const pattern of patterns) {
+        const match = actionText.match(pattern);
+        if (match) {
+            let name = match[1].trim();
+            name = name.replace(/[：:，。！？、；:]/g, '');
+            name = name.replace(/\s*(是狼人|是好人|狼人|好人).*$/g, '');
+            return name.trim();
+        }
+    }
+    return null;
+}
+
+function showActionLine(fromSeat, toSeat, lineClass = "", duration = 2500) {
+    if (!fromSeat || !toSeat) return;
+
+    const container = document.getElementById('action-connections');
+    if (!container) return;
+
+    const gameArea = document.querySelector('.relative.w-full.max-w-6xl');
+    if (!gameArea) return;
+
+    const fromRect = fromSeat.getBoundingClientRect();
+    const toRect = toSeat.getBoundingClientRect();
+    const areaRect = gameArea.getBoundingClientRect();
+
+    const x1 = fromRect.left + fromRect.width / 2 - areaRect.left;
+    const y1 = fromRect.top + fromRect.height / 2 - areaRect.top;
+    const x2 = toRect.left + toRect.width / 2 - areaRect.left;
+    const y2 = toRect.top + toRect.height / 2 - areaRect.top;
+
+    const length = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+    const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+
+    // 创建连线
+    const line = document.createElement('div');
+    line.className = `action-line ${lineClass}`;
+    line.style.left = x1 + 'px';
+    line.style.top = (y1 - 1.5) + 'px';
+    line.style.width = '0px';
+    line.style.transform = `rotate(${angle}deg)`;
+
+    container.appendChild(line);
+
+    // 动画：线向前生长
+    line.style.animation = `none`;
+    line.offsetHeight; // 触发重排
+    line.style.transition = `width ${duration * 0.4}ms ease-out, opacity 0.3s`;
+    line.style.opacity = '1';
+    line.style.width = length + 'px';
+
+    // 创建移动粒子
+    const particle = document.createElement('div');
+    particle.className = `action-particle ${lineClass}`;
+    particle.style.left = x1 + 'px';
+    particle.style.top = (y1 - 4) + 'px';
+    particle.style.setProperty('--tx', (x2 - x1) + 'px');
+    particle.style.setProperty('--ty', (y2 - y1) + 'px');
+    particle.style.animation = `particleMove ${duration * 0.5}ms ease-in forwards`;
+
+    container.appendChild(particle);
+
+    // 延迟后清除
+    setTimeout(() => {
+        line.style.transition = `width ${duration * 0.2}ms ease-in, opacity ${duration * 0.2}ms`;
+        line.style.width = '0px';
+        line.style.opacity = '0';
+        setTimeout(() => {
+            if (line.parentNode) line.remove();
+            if (particle.parentNode) particle.remove();
+        }, duration * 0.2);
+    }, duration * 0.6);
+}
+
+function showActionTooltip(seat, text) {
+    if (!seat) return;
+    const tooltip = document.createElement('div');
+    tooltip.className = 'action-tooltip absolute px-2 py-1 rounded text-xs font-gothic whitespace-nowrap z-30';
+    tooltip.style.background = 'rgba(0,0,0,0.85)';
+    tooltip.style.color = '#d4af37';
+    tooltip.style.border = '1px solid #8b0000';
+    tooltip.style.bottom = '100%';
+    tooltip.style.left = '50%';
+    tooltip.style.transform = 'translateX(-50%) translateY(-4px)';
+    tooltip.textContent = text;
+
+    seat.appendChild(tooltip);
+    setTimeout(() => {
+        if (tooltip.parentNode) tooltip.remove();
+    }, 2500);
+}
+
+// ==================== 辅助函数 ====================
+function getRoleInfo(roleType) {
+    const roleMap = {
+        'werewolf': { name: '狼人', emoji: '' },
+        'seer': { name: '预言家', emoji: '' },
+        'witch': { name: '女巫', emoji: '' },
+        'hunter': { name: '猎人', emoji: '' },
+        'guard': { name: '守卫', emoji: '' },
+        'villager': { name: '平民', emoji: '' }
+    };
+    return roleMap[roleType] || { name: '未知', emoji: '' };
+}
+
+// getAvatarForRole 已统一到 utils.js 中实现（支持 role_id 如 werewolf2/villager2 等）
+// 此处旧版本已删除，避免覆盖 window.getAvatarForRole
+
+function getDefaultAvatarForRole(roleId) {
+    // 默认头像的原始URL（从roles对象的初始定义中获取）
+    const defaultAvatars = {
+        'werewolf': 'https://p6-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/3ef06a82b7a64fa7b28ceac2d9efd664~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=2026042209420529A1BC658A371036FED4&rrcfp=f06b921b&x-expires=1779414195&x-signature=H1O3IO4HTPE%2BbPWtpb97YATvXdU%3D',
+        'seer': 'https://p26-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/0a2bd3124d5f44639276d39a087a11d6~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=2026042209420529A1BC658A371036FED4&rrcfp=f06b921b&x-expires=1779414197&x-signature=Sx6oVL4op5HtVLXIdNmKMNF6Xvo%3D',
+        'witch': 'https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/0852282206ee4a4b89504beb3def4f53~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=2026042209420529A1BC658A371036FED4&rrcfp=f06b921b&x-expires=1779414196&x-signature=EUiS9tpQa2et3qHW3Q01MuLvRYs%3D',
+        'hunter': 'https://p26-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/437709bf02084b35bda80238940ca927~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=2026042209420529A1BC658A371036FED4&rrcfp=f06b921b&x-expires=1779414239&x-signature=75C%2BoY%2BU4KGAtiOPfc5RFKpEqsc%3D',
+        'guard': 'https://p11-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/709fefc8922d4544b426abfa94cefa29~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=2026042209420529A1BC658A371036FED4&rrcfp=f06b921b&x-expires=1779414240&x-signature=NYdQxiEkYXeyCGoiXtHv%2FegC52g%3D',
+        'villager': 'https://p11-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/rc/pc/super_tool/fd6018582fd34199b6b9752a12716334~tplv-a9rns2rl98-image.image?lk3s=8e244e95&rcl=2026042209420529A1BC658A371036FED4&rrcfp=f06b921b&x-expires=1779414195&x-signature=KVCoF9K8FhxRpSvTyyz%2FkqXV7Kw%3D'
+    };
+    return defaultAvatars[roleId] || defaultAvatars.villager;
+}
+
+// 使用 Web Audio API 生成简单音效
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+function playTone(frequency, duration, type = 'sine') {
+    try {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.frequency.value = frequency;
+        oscillator.type = type;
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + duration);
+        
+        console.log('[DEBUG] Tone played:', frequency, 'Hz');
+    } catch (e) {
+        console.log('[DEBUG] Web Audio API error:', e);
+    }
+}
+
+function playSound(sound) {
+    console.log('[DEBUG] playSound called with:', sound);
+    console.log('[DEBUG] sound type:', typeof sound);
+    console.log('[DEBUG] sound.id:', sound?.id);
+    
+    // 播放实际的音频文件
+    if (sound) {
+        const soundId = sound.id || sound;
+        const audioElement = document.getElementById(soundId);
+        
+        if (audioElement) {
+            // 重置音频并播放
+            audioElement.currentTime = 0;
+            audioElement.play().catch(err => {
+                console.warn(`[DEBUG] Failed to play sound ${soundId}:`, err);
+            });
+        } else {
+            console.warn(`[DEBUG] Audio element not found for sound: ${soundId}`);
+        }
+    }
+}
+
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function shuffleArray(array) {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+}
+
+function shakeElement(element, duration = 500) {
+    element.classList.add('kill-target');
+    setTimeout(() => {
+        element.classList.remove('kill-target');
+    }, duration);
+}
+
+function showEulogyOverlay(playerName, message) {
+    const overlay = document.getElementById('eulogy-overlay');
+    const playerNameEl = document.getElementById('eulogy-player-name');
+    if (!overlay) return;
+
+    if (playerNameEl) playerNameEl.textContent = playerName ? `${playerName} 的遗言` : '遗言时刻';
+    overlay.classList.remove('hidden');
+
+    // 自动关闭遗言遮罩，防止后端未发送 eulogy_end 导致遮罩卡住
+    // 方案 1：后端正常发送 eulogy_end 时立即关闭
+    // 方案 2：如果后端失败，5 秒后自动关闭（比之前 2.5 秒更长，给 AI 更多时间）
+    if (window.eulogyTimeout) {
+        clearTimeout(window.eulogyTimeout);
+    }
+    window.eulogyTimeout = setTimeout(() => {
+        console.warn('[Eulogy] 后端未发送 eulogy_end，自动关闭遮罩');
+        hideEulogyOverlay();
+    }, 5000);
+}
+
+function hideEulogyOverlay() {
+    const overlay = document.getElementById('eulogy-overlay');
+    if (overlay) overlay.classList.add('hidden');
+    if (window.eulogyTimeout) {
+        clearTimeout(window.eulogyTimeout);
+        window.eulogyTimeout = null;
+    }
+}
+
+// ==================== 发言控制 ====================
+function nextSpeech() {
+    console.log('[DEBUG] nextSpeech called');
+    console.log('[DEBUG] Speech queue length:', gameState.speechQueue ? gameState.speechQueue.length : 0);
+    console.log('[DEBUG] Message queue length:', messageQueue.length);
+    console.log('[DEBUG] Current phase:', gameState.currentPhase);
+    console.log('[DEBUG] AutoPlay state:', gameState.autoPlay);
+    console.log('[DEBUG] WebSocket state:', ws ? ws.readyState : 'closed');
+
+    // 清除当前发言的打字机和显示定时器，防止动画未完成时状态混乱
+    if (currentTypeWriterTimeout) {
+        clearTimeout(currentTypeWriterTimeout);
+        currentTypeWriterTimeout = null;
+    }
+    if (currentSpeechTimeout) {
+        clearTimeout(currentSpeechTimeout);
+        currentSpeechTimeout = null;
+    }
+
+    // 停止当前正在播放的语音
+    if (window.voicePlayer) {
+        console.log('[DEBUG] Stopping current voice playback');
+        window.voicePlayer.stop();
+    }
+
+    // 如果有正在进行的发言，立即 resolve 它
+    if (currentSpeechResolve) {
+        console.log('[DEBUG] Resolving current speech immediately');
+        const resolve = currentSpeechResolve;
+        currentSpeechResolve = null;
+        resolve();
+    }
+
+    // 先隐藏当前发言区域
+    const speechArea = document.getElementById('speech-area');
+    if (speechArea) {
+        speechArea.classList.add('hidden');
+    }
+
+    // 如果有 messageResumeResolve，说明消息队列被暂停，先恢复它
+    if (messageResumeResolve) {
+        console.log('[DEBUG] Resuming message queue');
+        const resolve = messageResumeResolve;
+        messageResumeResolve = null;
+        resolve();
+    }
+
+    // 检查是否有队列中的发言
+    if (gameState.speechQueue && gameState.speechQueue.length > 0) {
+        // 从队列中取出下一条发言并显示
+        // speechQueue 中存储的是 { data, resolve } 对象
+        const nextItem = gameState.speechQueue.shift();
+        console.log('[DEBUG] Playing queued speech:', nextItem.data.player);
+        
+        // 使用 setTimeout 确保 UI 更新后再显示下一条
+        setTimeout(() => {
+            onSpeech(nextItem.data).then(nextItem.resolve);
+        }, 100);
+        return;
+    }
+
+    console.log('[DEBUG] No queued speech, checking if all speeches complete');
+
+    // 如果消息队列中有积压的非发言消息（如 vote_start），先处理它们
+    if (messageQueue.length > 0) {
+        console.log('[DEBUG] Message queue has', messageQueue.length, 'pending messages, processing next');
+        // 恢复消息队列处理
+        if (!isProcessingMessage) {
+            processNextMessage();
+        }
+        return;
+    }
+
+    // 如果队列为空且游戏处于发言阶段，通知后端继续游戏
+    // 后端 phase 值为: lobby, night, dawn, day 等
+    // 扩展支持更多可能的发言阶段值
+    const speechPhases = ['day', 'dawn', 'day_discussion', 'speech'];
+    if (speechPhases.includes(gameState.currentPhase)) {
+        console.log('[DEBUG] All speeches completed, sending ready_for_next to backend');
+
+        // 检查 WebSocket 状态
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'ready_for_next' }));
+        } else {
+            console.error('[DEBUG] WebSocket not open, cannot send ready_for_next');
+
+            // 尝试重新连接
+            if (!ws || ws.readyState === WebSocket.CLOSED || ws.readyState === WebSocket.CLOSING) {
+                console.log('[DEBUG] Attempting to reconnect WebSocket');
+                connectWS();
+            }
+        }
+    }
+}
+
+function toggleAutoPlay() {
+    gameState.autoPlay = !gameState.autoPlay;
+    const autoPlayBtn = document.getElementById('auto-play-btn');
+    if (autoPlayBtn) {
+        autoPlayBtn.textContent = gameState.autoPlay ? '停止自动' : '自动播放';
+    }
+    console.log('[DEBUG] toggleAutoPlay, autoPlay:', gameState.autoPlay);
+
+    // 如果切换到自动播放模式且有队列中的发言，则继续播放
+    if (gameState.autoPlay) {
+        if (gameState.speechQueue && gameState.speechQueue.length > 0) {
+            // 自动播放队列中的发言
+            // speechQueue 中存储的是 { data, resolve } 对象
+            const nextItem = gameState.speechQueue.shift();
+            console.log('[DEBUG] Auto playing queued speech:', nextItem.data.player);
+            onSpeech(nextItem.data).then(nextItem.resolve);
+        }
+    }
+}
+
+function submitVote() {
+    if (gameState.selectedVote === null) {
+        alert('请选择要放逐的玩家');
+        return;
+    }
+    
+    // 发送投票到后端
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+            type: "vote",
+            target_id: gameState.selectedVote
+        }));
+    }
+    
+    // 隐藏投票区域
+    document.getElementById('voting-area').classList.add('hidden');
+}
