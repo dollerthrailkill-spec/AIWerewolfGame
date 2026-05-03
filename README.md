@@ -2,6 +2,8 @@
 
 一个基于 FastAPI 和 WebSocket 的 AI 狼人杀游戏，具有第五人格风格的 Gothic 界面。
 
+![游戏截图](static/images/screenshot.webp)
+
 ## 功能特性
 
 ### 游戏机制
