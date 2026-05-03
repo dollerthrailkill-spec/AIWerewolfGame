@@ -28,8 +28,8 @@ if (typeof window.__utilsLoaded === 'undefined') {
     var PLAYER_AVATAR_MAP = {
         '月影': '/static/images/role/Werewolf-月影.webp',
         '星辰': '/static/images/role/Werewolf-星辰.webp',
+        '夜影': '/static/images/role/wolf3.webp',
         '风语': '/static/images/role/Prophet-风语.webp',
-        '雷鸣': '/static/images/role/Prophet-雷鸣.webp',
         '霜降': '/static/images/role/Witch-霜降.webp',
         '雪落': '/static/images/role/Hunter-雪落.webp',
         '云深': '/static/images/role/Guard-云深.webp',
@@ -42,8 +42,8 @@ if (typeof window.__utilsLoaded === 'undefined') {
     var PLAYER_ICON_MAP = {
         '月影': '/static/images/role_icon/Werewolf-月影-UIicon.webp',
         '星辰': '/static/images/role_icon/Werewolf-星辰-UIicon.webp',
+        '夜影': '/static/images/role_icon/wolf3UI.webp',
         '风语': '/static/images/role_icon/Prophet-风语-UIicon.webp',
-        '雷鸣': '/static/images/role_icon/Prophet-雷鸣-UIicon.webp',
         '霜降': '/static/images/role_icon/Witch-霜降-UIicon.webp',
         '雪落': '/static/images/role_icon/Hunter-雪落-UIicon.webp',
         '云深': '/static/images/role_icon/Guard-云深-UIicon.webp',
@@ -56,8 +56,8 @@ if (typeof window.__utilsLoaded === 'undefined') {
     var ROLE_ICON_MAP = {
         'werewolf': '/static/images/role_icon/Werewolf-月影-UIicon.webp',
         'werewolf2': '/static/images/role_icon/Werewolf-星辰-UIicon.webp',
-        'werewolf3': '/static/images/role_icon/Werewolf-月影-UIicon.webp',
-        'seer': '/static/images/role_icon/Prophet-雷鸣-UIicon.webp',
+        'werewolf3': '/static/images/role_icon/wolf3UI.webp',
+        'seer': '/static/images/role_icon/Prophet-风语-UIicon.webp',
         'witch': '/static/images/role_icon/Witch-霜降-UIicon.webp',
         'hunter': '/static/images/role_icon/Hunter-雪落-UIicon.webp',
         'guard': '/static/images/role_icon/Guard-云深-UIicon.webp',
@@ -70,8 +70,8 @@ if (typeof window.__utilsLoaded === 'undefined') {
     var ROLE_SPRITE_MAP = {
         'werewolf': '/static/images/role/Werewolf-月影.webp',
         'werewolf2': '/static/images/role/Werewolf-星辰.webp',
-        'werewolf3': '/static/images/role/Werewolf-月影.webp',
-        'seer': '/static/images/role/Prophet-雷鸣.webp',
+        'werewolf3': '/static/images/role/wolf3.webp',
+        'seer': '/static/images/role/Prophet-风语.webp',
         'witch': '/static/images/role/Witch-霜降.webp',
         'hunter': '/static/images/role/Hunter-雪落.webp',
         'guard': '/static/images/role/Guard-云深.webp',

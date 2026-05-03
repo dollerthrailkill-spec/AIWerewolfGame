@@ -122,12 +122,12 @@ const onSpeech = (data) => new Promise((resolve) => {
         return;
     }
 
-    const spriteSrc = getPlayerSprite(data.player);
+    const roleId = player?.role_id || player?.role;
+    const spriteSrc = getRoleSprite(roleId);
     speakerSprite.src = spriteSrc;
     speakerSprite.onload = () => {
         removeLightBackground(speakerSprite);
     };
-    const roleId = player?.role_id || player?.role;
     speakerIcon.src = getRoleIcon(roleId);
     speakerName.textContent = data.player;
     speakerRole.textContent = roleInfo?.name || '未知';
