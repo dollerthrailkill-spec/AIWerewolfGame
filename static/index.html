@@ -75,6 +75,27 @@
                     <span class="text-xl">🐺</span>
                 </div>
                 <span class="font-cinzel text-xl font-bold text-gold-400 tracking-widest hidden sm:block">WEREWOLF</span>
+                
+                <!-- 等级和经验值 -->
+                <div id="level-ui" class="flex items-center gap-3 ml-2 pl-2 border-l border-gold-500/20">
+                    <!-- 等级徽章 -->
+                    <div class="flex items-center gap-1">
+                        <span class="text-gold-400 font-bold text-lg">Lv.</span>
+                        <span id="current-level" class="text-gold-300 font-cinzel font-bold text-xl">1</span>
+                    </div>
+                    
+                    <!-- 经验条 -->
+                    <div class="flex flex-col min-w-[120px]">
+                        <div class="relative h-2 w-full bg-gray-800 rounded-full overflow-hidden border border-gold-500/30">
+                            <div id="exp-progress" class="absolute top-0 left-0 h-full bg-gradient-to-r from-gold-600 to-yellow-400 transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-400 mt-1">
+                            <span id="exp-current">0</span>
+                            <span>/</span>
+                            <span id="exp-max">100</span>
+                        </div>
+                    </div>
+                </div>
             </div>
             <!-- Right Buttons -->
             <div class="nav-actions flex items-center gap-3">
@@ -725,7 +746,6 @@
                     <div class="flex gap-2 mb-6 justify-center">
                         <button class="leaderboard-tab px-4 py-2 rounded-lg text-sm border border-gold-500/30 text-gold-400 bg-gold-500/10" data-tab="mvp">MVP 榜</button>
                         <button class="leaderboard-tab px-4 py-2 rounded-lg text-sm border border-gray-700 text-gray-500 hover:border-gray-500" data-tab="model">模型榜</button>
-                        <button class="leaderboard-tab px-4 py-2 rounded-lg text-sm border border-gray-700 text-gray-500 hover:border-gray-500" data-tab="replay">回放</button>
                     </div>
                     <div id="leaderboard-content"></div>
                 </div>
@@ -790,7 +810,6 @@
     <!-- 扩展功能模块 -->
     <script src="/static/js/stats.js"></script>
     <script src="/static/js/achievements.js"></script>
-    <script src="/static/js/replay.js"></script>
     <script src="/static/js/personality.js"></script>
     <script src="/static/js/dailyChallenge.js"></script>
     

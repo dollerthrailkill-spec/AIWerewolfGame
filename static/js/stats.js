@@ -90,6 +90,34 @@ if (typeof window.__statsLoaded === 'undefined') {
         return data.success ? (data.rankings || []) : [];
     };
 
+    /**
+     * 获取模型MVP排行榜
+     * @param {number} limit - 返回数量
+     * @returns {Array} [{ model, mvp_count }]
+     */
+    var getTopModelMVPs = async (limit = 10) => {
+        const data = await apiGet(`leaderboard/model-mvp?limit=${limit}`);
+        return data.success ? (data.rankings || []) : [];
+    };
+
+    /**
+     * 获取用户经验值和等级信息
+     * @returns {Object} 包含等级、经验值、进度等信息
+     */
+    var getUserExp = async () => {
+        const data = await apiGet('user/exp');
+        return data.success ? data.data : null;
+    };
+
+    /**
+     * 同步成就和每日挑战的积分到经验值
+     * @returns {Object} 更新后的等级和经验值信息
+     */
+    var syncExpFromAchievements = async () => {
+        const data = await apiPost('user/exp/sync');
+        return data.success ? data.data : null;
+    };
+
     // ==================== 兼容旧接口（同步版本，返回空/默认值） ====================
     // 这些函数保留以兼容可能存在的同步调用方，但数据来自后端
 
@@ -133,6 +161,9 @@ if (typeof window.__statsLoaded === 'undefined') {
         getWinsByMode,
         getTopMVPs,
         getTopModels,
+        getTopModelMVPs,
+        getUserExp,
+        syncExpFromAchievements,
         // 兼容旧接口
         loadStats,
         saveStats,
@@ -147,6 +178,9 @@ if (typeof window.__statsLoaded === 'undefined') {
     window.getWinsByMode = getWinsByMode;
     window.getTopMVPs = getTopMVPs;
     window.getTopModels = getTopModels;
+    window.getTopModelMVPs = getTopModelMVPs;
+    window.getUserExp = getUserExp;
+    window.syncExpFromAchievements = syncExpFromAchievements;
     window.loadStats = loadStats;
     window.saveStats = saveStats;
     window.recordGame = recordGame;

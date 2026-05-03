@@ -110,6 +110,17 @@ const showGameOverModal = () => {
     }
 
     toggleGameOverModal();
+
+    // 游戏结束后同步经验值
+    setTimeout(async () => {
+        if (window.triggerExpSync) {
+            try {
+                await window.triggerExpSync();
+            } catch (e) {
+                console.warn('[MVP] 游戏结束后同步经验值失败:', e);
+            }
+        }
+    }, 1500);
 };
 
 // ==================== 导出到命名空间 ====================

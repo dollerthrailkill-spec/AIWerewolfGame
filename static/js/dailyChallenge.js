@@ -56,6 +56,14 @@ const getTodayChallenges = async () => {
  */
 const markChallengeComplete = async (challengeIndex) => {
     const data = await apiPost('daily-challenges/complete', { challenge_index: challengeIndex });
+    if (data.success && window.App.stats && window.updateLevelUI) {
+        // 同步经验值
+        try {
+            await window.triggerExpSync();
+        } catch (e) {
+            console.warn('[DailyChallenge] 同步经验值失败:', e);
+        }
+    }
     return data.success;
 };
 

@@ -121,10 +121,23 @@ class Database:
             );
 
             CREATE INDEX IF NOT EXISTS idx_dcp_date ON daily_challenge_progress(challenge_date);
+
+            -- ==================== 用户经验值与等级 ====================
+            CREATE TABLE IF NOT EXISTS user_exp (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT DEFAULT 'default',
+                total_exp INTEGER DEFAULT 0,
+                current_level INTEGER DEFAULT 1,
+                last_updated TEXT NOT NULL,
+                UNIQUE(user_id)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_user_exp_user ON user_exp(user_id);
         """)
 
-        # 插入默认成就
+        # 插入默认成就和初始化用户数据
         self._init_default_achievements(conn)
+        self._init_default_user(conn)
         conn.commit()
 
     def _init_default_achievements(self, conn: sqlite3.Connection):
@@ -188,6 +201,141 @@ class Database:
         """, (game_id, player_count, winner, round_num, started_at, ended_at, duration, json.dumps(game_data, ensure_ascii=False)))
         conn.commit()
         return cursor.lastrowid
+
+    def _init_default_user(self, conn: sqlite3.Connection):
+        """初始化默认用户数据（如果不存在）"""
+        now = datetime.now().isoformat()
+        conn.execute("""
+            INSERT OR IGNORE INTO user_exp
+            (user_id, total_exp, current_level, last_updated)
+            VALUES (?, ?, ?, ?)
+        """, ("default", 0, 1, now))
+
+    # ==================== 经验值与等级操作 ====================
+
+    def exp_for_level(self, level: int) -> int:
+        """计算升级到指定等级所需的经验值（基础公式）"""
+        # 简单公式：每级需要 100 + (level-1)*50 经验
+        # 累计经验值计算
+        if level <= 1:
+            return 0
+        total = 0
+        for l in range(1, level):
+            total += 100 + (l - 1) * 50
+        return total
+
+    def get_user_exp(self) -> dict:
+        """获取用户当前经验值和等级信息"""
+        conn = self._get_conn()
+        row = conn.execute("""
+            SELECT total_exp, current_level, last_updated
+            FROM user_exp
+            WHERE user_id = 'default'
+        """).fetchone()
+        
+        if not row:
+            return {
+                "total_exp": 0,
+                "current_level": 1,
+                "exp_for_current": 0,
+                "exp_for_next": 100,
+                "exp_in_level": 0,
+                "progress": 0.0
+            }
+        
+        level = row["current_level"]
+        total_exp = row["total_exp"]
+        
+        # 计算当前等级需要的经验和下一级需要的经验
+        exp_current = self.exp_for_level(level)
+        exp_next = self.exp_for_level(level + 1)
+        exp_in_level = total_exp - exp_current
+        progress = (exp_in_level / (exp_next - exp_current)) * 100 if (exp_next - exp_current) > 0 else 100
+        
+        return {
+            "total_exp": total_exp,
+            "current_level": min(level, 999),  # 最高 999 级
+            "exp_for_current": exp_current,
+            "exp_for_next": exp_next,
+            "exp_in_level": exp_in_level,
+            "progress": min(max(progress, 0), 100),
+            "last_updated": row["last_updated"]
+        }
+
+    def add_exp(self, exp_amount: int) -> dict:
+        """增加经验值并返回更新后的信息"""
+        conn = self._get_conn()
+        now = datetime.now().isoformat()
+        
+        # 先获取当前数据
+        current = self.get_user_exp()
+        new_total = current["total_exp"] + exp_amount
+        
+        # 计算新等级
+        new_level = 1
+        for level in range(1, 1000):  # 最高 999 级
+            exp_needed = self.exp_for_level(level + 1)
+            if new_total >= exp_needed:
+                new_level = level + 1
+            else:
+                break
+        new_level = min(new_level, 999)
+        
+        # 更新数据库
+        conn.execute("""
+            UPDATE user_exp
+            SET total_exp = ?, current_level = ?, last_updated = ?
+            WHERE user_id = 'default'
+        """, (new_total, new_level, now))
+        conn.commit()
+        
+        level_up = new_level > current["current_level"]
+        
+        # 返回完整信息
+        exp_current = self.exp_for_level(new_level)
+        exp_next = self.exp_for_level(new_level + 1)
+        exp_in_level = new_total - exp_current
+        progress = (exp_in_level / (exp_next - exp_current)) * 100 if (exp_next - exp_current) > 0 else 100
+        
+        return {
+            "total_exp": new_total,
+            "current_level": new_level,
+            "exp_for_current": exp_current,
+            "exp_for_next": exp_next,
+            "exp_in_level": exp_in_level,
+            "progress": min(max(progress, 0), 100),
+            "level_up": level_up,
+            "gained_exp": exp_amount,
+            "last_updated": now
+        }
+
+    def sync_exp_from_achievements_and_challenges(self):
+        """同步成就和每日挑战的积分到经验值"""
+        conn = self._get_conn()
+        
+        # 计算成就总积分
+        achievements_row = conn.execute("""
+            SELECT SUM(a.points) as total_points
+            FROM achievement_unlocks au
+            JOIN achievements a ON au.achievement_id = a.id
+        """).fetchone()
+        achievements_points = achievements_row["total_points"] or 0
+        
+        # 计算每日挑战总积分
+        challenges_row = conn.execute("""
+            SELECT SUM(points) as total_points
+            FROM daily_challenge_progress
+            WHERE completed = 1
+        """).fetchone()
+        challenges_points = challenges_row["total_points"] or 0
+        
+        total_points = achievements_points + challenges_points
+        
+        # 将积分转化为经验值（1 积分 = 10 经验）
+        exp_amount = total_points * 10
+        
+        # 更新经验值
+        return self.add_exp(exp_amount)
 
     def exec_in_transaction(self, operations: list):
         """在单个事务中执行多个数据库操作
@@ -360,6 +508,27 @@ class Database:
                 "games": r["total_games"],
                 "wins": r["wins"],
                 "winRate": win_rate,
+            })
+        return result
+
+    def get_model_mvp_stats(self, limit: int = 10) -> list:
+        """获取模型MVP统计（按MVP获得次数排名）"""
+        conn = self._get_conn()
+        rows = conn.execute("""
+            SELECT model,
+                   COUNT(*) as mvp_count
+            FROM player_game_stats
+            WHERE model != ''
+              AND is_mvp = 1
+            GROUP BY model
+            ORDER BY mvp_count DESC
+            LIMIT ?
+        """, (limit,)).fetchall()
+        result = []
+        for r in rows:
+            result.append({
+                "model": r["model"],
+                "mvp_count": r["mvp_count"],
             })
         return result
 

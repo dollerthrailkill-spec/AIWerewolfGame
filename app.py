@@ -974,7 +974,19 @@ async def get_stats_history(limit: int = 50, offset: int = 0):
     """获取游戏历史记录列表"""
     try:
         history = db.get_game_history(limit=limit, offset=offset)
-        return {"success": True, "history": history}
+        # 转换为驼峰式命名
+        def to_camel_case(snake_str):
+            components = snake_str.split('_')
+            return components[0] + ''.join(x.title() for x in components[1:])
+        
+        converted_history = []
+        for item in history:
+            converted = {}
+            for key, value in item.items():
+                converted[to_camel_case(key)] = value
+            converted_history.append(converted)
+        
+        return {"success": True, "history": converted_history}
     except Exception as e:
         return {"success": False, "message": str(e)}
 
@@ -1015,6 +1027,37 @@ async def get_model_leaderboard(min_games: int = 3, limit: int = 10):
     try:
         rankings = db.get_model_stats(min_games=min_games, limit=limit)
         return {"success": True, "rankings": rankings}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+@app.get("/api/leaderboard/model-mvp", summary="获取模型MVP排行榜")
+async def get_model_mvp_leaderboard(limit: int = 10):
+    """获取模型MVP排行榜（按MVP获得次数排名）"""
+    try:
+        rankings = db.get_model_mvp_stats(limit=limit)
+        return {"success": True, "rankings": rankings}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+# ==================== 经验值与等级 API ====================
+
+@app.get("/api/user/exp", summary="获取用户经验值和等级信息")
+async def get_user_exp():
+    """获取用户当前经验值、等级和进度"""
+    try:
+        data = db.get_user_exp()
+        return {"success": True, "data": data}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+@app.post("/api/user/exp/sync", summary="同步成就和挑战积分到经验值")
+async def sync_exp():
+    """同步成就和每日挑战的积分到经验值"""
+    try:
+        result = db.sync_exp_from_achievements_and_challenges()
+        return {"success": True, "data": result}
     except Exception as e:
         return {"success": False, "message": str(e)}
 

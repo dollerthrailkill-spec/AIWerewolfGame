@@ -473,6 +473,42 @@ const bindModalCloseButtons = () => {
 
 // ==================== 新功能面板切换 ====================
 
+const updateLevelUI = async (expData = null) => {
+    const levelEl = document.getElementById('current-level');
+    const progressEl = document.getElementById('exp-progress');
+    const expCurrentEl = document.getElementById('exp-current');
+    const expMaxEl = document.getElementById('exp-max');
+    
+    if (!levelEl || !progressEl || !expCurrentEl || !expMaxEl) return;
+    
+    try {
+        const data = expData || await window.App.stats.getUserExp();
+        if (data) {
+            levelEl.textContent = data.current_level;
+            progressEl.style.width = `${data.progress}%`;
+            expCurrentEl.textContent = data.exp_in_level;
+            expMaxEl.textContent = data.exp_for_next - data.exp_for_current;
+        }
+    } catch (e) {
+        console.warn('[Level] 更新等级UI失败:', e);
+    }
+};
+
+const triggerExpSync = async () => {
+    try {
+        const result = await window.App.stats.syncExpFromAchievements();
+        if (result) {
+            await updateLevelUI(result);
+            if (result.level_up) {
+                // 等级提升提示
+                showCenterBanner('🎊 等级提升!', `恭喜升到 Lv.${result.current_level}!`, 'dawn-banner', 3000);
+            }
+        }
+    } catch (e) {
+        console.warn('[Level] 同步经验值失败:', e);
+    }
+};
+
 const toggleDataCenterPanel = async () => {
     const panel = document.getElementById('data-center-panel');
     if (!panel) return;
@@ -620,22 +656,17 @@ const renderLeaderboardTab = async (tab) => {
                 `).join('')}
             </div>` : '<p class="text-gray-600 text-sm text-center py-8">暂无 MVP 数据，开始一局游戏吧！</p>';
     } else if (tab === 'model') {
-        const models = await window.App.stats.getTopModels(3, 10);
+        const models = await window.App.stats.getTopModelMVPs(10);
         content.innerHTML = models.length ? `
             <div class="space-y-2">
                 ${models.map((m, i) => `
                     <div class="flex items-center gap-3 p-3 rounded-lg border border-gold-500/10">
                         <span class="font-cinzel text-lg ${i < 3 ? 'text-gold-400' : 'text-gray-500'}">${i + 1}</span>
                         <span class="flex-1 text-gray-300 text-sm">${m.model}</span>
-                        <span class="text-sm text-gold-500">${m.winRate}</span>
-                        <span class="text-xs text-gray-500">(${m.games}场)</span>
+                        <span class="text-sm text-gold-500">${m.mvp_count} 次 MVP</span>
                     </div>
                 `).join('')}
-            </div>` : '<p class="text-gray-600 text-sm text-center py-8">暂无模型数据（至少3场）</p>';
-    } else if (tab === 'replay') {
-        if (window.App.replay) {
-            window.App.replay.renderReplayList(content);
-        }
+            </div>` : '<p class="text-gray-600 text-sm text-center py-8">暂无模型数据</p>';
     }
 };
 
@@ -772,11 +803,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         checkApiConfig();
         console.log('[Main] Step 10 完成');
         
-        // 12. 启动回放录制（为当前会话准备）
-        if (window.App.replay) {
-            // 回放录制将在游戏开始时启动
-            console.log('[Main] Replay module available');
-        }
+        console.log('[Main] Step 11: 初始化等级UI');
+        // 11. 初始化等级UI
+        await updateLevelUI();
+        // 同步一次经验值
+        await triggerExpSync();
+        console.log('[Main] Step 11 完成');
+        
+        
         
         console.log('[Main] Initialization complete');
     } catch (err) {
@@ -793,6 +827,8 @@ window.toggleDataCenterPanel = toggleDataCenterPanel;
 window.toggleAchievementsPanel = toggleAchievementsPanel;
 window.toggleLeaderboardPanel = toggleLeaderboardPanel;
 window.toggleDailyChallengePanel = toggleDailyChallengePanel;
+window.updateLevelUI = updateLevelUI;
+window.triggerExpSync = triggerExpSync;
 
 // 向后兼容别名：推荐使用 window.App.ws.*
 window.startGame = window.App.ws.startGame;
