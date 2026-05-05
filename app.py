@@ -809,6 +809,9 @@ async def upload_exam_file(file: UploadFile = File(...)):
         content = await file.read()
         # save_uploaded_file 返回 UUID 格式的安全文件名
         saved_name = save_uploaded_file(file.filename, content)
+        
+        # 清除该文件的缓存，确保解析最新内容
+        clear_question_cache(saved_name)
 
         # 使用保存后的安全文件名解析题目
         questions = get_exam_questions_by_file(saved_name)

@@ -186,6 +186,13 @@
         let examFiles = [];
         let selectedFile = null;
 
+        // 转义 HTML 特殊字符，防止 XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         // 页面加载完成
         document.addEventListener('DOMContentLoaded', () => {
             initAudio();
@@ -234,7 +241,9 @@
 
         async function loadExamFiles() {
             try {
-                const resp = await fetch('/api/exam/files');
+                const resp = await fetch('/api/exam/files', {
+                    cache: 'no-store' // 禁用缓存，确保获取最新数据
+                });
                 const data = await resp.json();
                 if (data.success) {
                     examFiles = data.files;
@@ -253,11 +262,11 @@
             }
 
             container.innerHTML = examFiles.map(f => `
-                <div class="file-list-item bg-gray-800/60 border-2 border-gold-500/20 py-3 px-4 rounded-lg transition-all duration-300 hover:border-gold-500" data-file="${f}">
+                <div class="file-list-item bg-gray-800/60 border-2 border-gold-500/20 py-3 px-4 rounded-lg transition-all duration-300 hover:border-gold-500" data-file="${escapeHtml(f)}">
                     <div class="flex justify-between items-center">
                         <div>
                             <i class="fa fa-file-text-o text-gold-400 mr-2"></i>
-                            <span class="font-cinzel">${f}</span>
+                            <span class="font-cinzel">${escapeHtml(f)}</span>
                         </div>
                         <i class="fa fa-check-circle text-gold-400 hidden check-icon"></i>
                     </div>
@@ -313,7 +322,9 @@
 
         async function loadProviders() {
             try {
-                const resp = await fetch('/api/config');
+                const resp = await fetch('/api/config', {
+                    cache: 'no-store' // 禁用缓存，确保获取最新数据
+                });
                 const data = await resp.json();
                 providers = Object.values(data.providers || {});
                 renderProviders();
@@ -336,19 +347,19 @@
                 if (models.length === 0) {
                     return `
                         <div class="provider-option bg-gray-800/60 border-2 border-gold-500/20 text-gray-100 py-3 px-4 rounded-lg transition-all duration-300 text-left opacity-60">
-                            <div class="font-cinzel text-lg text-gold-400">${p.name}</div>
+                            <div class="font-cinzel text-lg text-gold-400">${escapeHtml(p.name)}</div>
                             <div class="text-sm opacity-80">请先在API设置中添加模型</div>
                         </div>
                     `;
                 }
                 return `
-                    <div class="provider-option bg-gray-800/60 border-2 border-gold-500/20 hover:border-gold-500 text-gray-100 py-3 px-4 rounded-lg transition-all duration-300" data-provider-id="${p.id}">
-                        <div class="font-cinzel text-lg text-gold-400 mb-3">${p.name}</div>
+                    <div class="provider-option bg-gray-800/60 border-2 border-gold-500/20 hover:border-gold-500 text-gray-100 py-3 px-4 rounded-lg transition-all duration-300" data-provider-id="${escapeHtml(p.id)}">
+                        <div class="font-cinzel text-lg text-gold-400 mb-3">${escapeHtml(p.name)}</div>
                         <div class="models-grid grid gap-2">
                             ${models.map(m => `
                                 <button class="model-btn bg-gray-900 border border-gold-500/20 hover:border-gold-500 text-gray-100 py-2 px-3 rounded transition-all duration-300 text-sm text-left" 
-                                        data-provider-id="${p.id}" data-model="${m}">
-                                    ${m}
+                                        data-provider-id="${escapeHtml(p.id)}" data-model="${escapeHtml(m)}">
+                                    ${escapeHtml(m)}
                                 </button>
                             `).join('')}
                         </div>
@@ -395,10 +406,17 @@
                     `/api/exam/questions?file_name=${encodeURIComponent(selectedFile)}` : 
                     '/api/exam/questions';
                 
-                const resp = await fetch(url);
+                const resp = await fetch(url, {
+                    cache: 'no-store' // 禁用缓存，确保获取最新题目
+                });
                 const data = await resp.json();
                 if (data.success) {
-                    questions = data.questions;
+                    questions = data.questions || [];
+                    if (questions.length === 0) {
+                        alert('题库为空，请先上传题目文件');
+                        return;
+                    }
+                    
                     currentQuestionIndex = 0;
                     totalScore = 0;
                     correctCount = 0;
@@ -414,6 +432,8 @@
                     document.getElementById('max-score').textContent = questions.length * 2;
 
                     showCurrentQuestion();
+                } else {
+                    alert(data.message || '加载题目失败');
                 }
             } catch (e) {
                 console.error('加载题目失败', e);
@@ -423,9 +443,18 @@
 
         function showCurrentQuestion() {
             const q = questions[currentQuestionIndex];
+            if (!q) {
+                alert('题目数据加载失败');
+                return;
+            }
+            
+            // 安全地显示题目信息，提供默认值
+            const questionId = q.id !== undefined ? q.id : (currentQuestionIndex + 1);
+            const questionText = q.question || '题目内容加载失败';
+            
             document.getElementById('question-progress').textContent = `${currentQuestionIndex + 1} / ${questions.length}`;
-            document.getElementById('current-question-num').textContent = `第 ${q.id} 题`;
-            document.getElementById('question-text').textContent = q.question;
+            document.getElementById('current-question-num').textContent = `第 ${questionId} 题`;
+            document.getElementById('question-text').textContent = questionText;
 
             document.getElementById('answer-result').classList.add('hidden');
             document.getElementById('loading-indicator').classList.add('hidden');
@@ -439,6 +468,10 @@
             if (!selectedProviderId || !selectedModel) return;
 
             const q = questions[currentQuestionIndex];
+            if (!q) {
+                alert('当前题目不存在，请重新开始考试');
+                return;
+            }
 
             document.getElementById('loading-indicator').classList.remove('hidden');
             document.getElementById('submit-answer-btn').disabled = true;
@@ -478,23 +511,29 @@
         }
 
         function showAnswerResult(data) {
-            totalScore += data.score;
-            if (data.is_correct) {
+            // 安全地获取数据，提供默认值
+            const score = typeof data.score === 'number' ? data.score : 0;
+            const isCorrect = data.is_correct === true;
+            const modelAnswer = data.model_answer || '模型未返回答案';
+            const correctAnswer = data.correct_answer || '正确答案未提供';
+
+            totalScore += score;
+            if (isCorrect) {
                 correctCount++;
             }
 
             answers.push(data);
 
             document.getElementById('answer-result').classList.remove('hidden');
-            document.getElementById('model-answer').textContent = data.model_answer;
-            document.getElementById('correct-answer').textContent = data.correct_answer;
+            document.getElementById('model-answer').textContent = modelAnswer;
+            document.getElementById('correct-answer').textContent = correctAnswer;
 
             const scoreResult = document.getElementById('score-result');
-            if (data.is_correct) {
-                scoreResult.textContent = `+${data.score} 分 (正确)`;
+            if (isCorrect) {
+                scoreResult.textContent = `+${score} 分 (正确)`;
                 scoreResult.className = 'text-2xl font-gothic answer-result correct';
             } else {
-                scoreResult.textContent = `+${data.score} 分 (错误)`;
+                scoreResult.textContent = `+${score} 分 (错误)`;
                 scoreResult.className = 'text-2xl font-gothic answer-result incorrect';
             }
 
@@ -510,23 +549,27 @@
         }
 
         function nextQuestion() {
-            currentQuestionIndex++;
-            showCurrentQuestion();
+            if (currentQuestionIndex < questions.length - 1) {
+                currentQuestionIndex++;
+                showCurrentQuestion();
+            } else {
+                showExamComplete();
+            }
         }
 
         function updateScoreDisplay() {
-            document.getElementById('total-score').textContent = totalScore;
+            document.getElementById('total-score').textContent = totalScore || 0;
         }
 
         function showExamComplete() {
             document.getElementById('question-area').classList.add('hidden');
             document.getElementById('exam-complete').classList.remove('hidden');
-            document.getElementById('final-score').textContent = totalScore;
-            document.getElementById('correct-count').textContent = correctCount;
-            document.getElementById('incorrect-count').textContent = questions.length - correctCount;
+            document.getElementById('final-score').textContent = totalScore || 0;
+            document.getElementById('correct-count').textContent = correctCount || 0;
+            document.getElementById('incorrect-count').textContent = (questions.length || 0) - (correctCount || 0);
         }
 
-        function restartExam() {
+        async function restartExam() {
             document.getElementById('file-selection').classList.remove('hidden');
             document.getElementById('provider-selection').classList.remove('hidden');
             document.getElementById('exam-info').classList.add('hidden');
@@ -534,6 +577,9 @@
             document.getElementById('exam-complete').classList.add('hidden');
             selectedProviderId = null;
             selectedModel = null;
+            // 重新加载最新的提供商和题库信息
+            await loadProviders();
+            await loadExamFiles();
         }
     </script>
 </body>
