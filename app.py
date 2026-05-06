@@ -105,7 +105,7 @@ api_rate_limiter = RateLimiter(max_requests=30, window_seconds=60)
 async def rate_limit_middleware(request: Request, call_next):
     """对 API 请求进行速率限制，静态资源和 WebSocket 升级请求豁免"""
     path = request.url.path
-    if path.startswith("/static") or path == "/ws" or path == "/":
+    if path.startswith("/static") or path == "/ws" or path == "/" or path.startswith("/api/exam/"):
         return await call_next(request)
 
     client_ip = request.client.host if request.client else "unknown"
@@ -202,7 +202,7 @@ def _save_game_to_db(game: GameEngine):
 
             model_name = ""
             if hasattr(p, 'model_config') and p.model_config:
-                model_name = getattr(p.model_config, 'model', '') or ""
+                model_name = getattr(p.model_config, 'model_name', '') or ""
 
             players_data.append({
                 "id": p.id,

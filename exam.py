@@ -42,6 +42,7 @@ def parse_exam_questions(file_path):
     current_answer = None
     answer_lines = []
     is_format_type = None  # "old" 或 "new"
+    chinese_format = False  # 语文题格式：选项行追加到题目而非答案
     
     with open(file_path, 'r', encoding='utf-8') as f:
         lines = f.readlines()
@@ -52,40 +53,49 @@ def parse_exam_questions(file_path):
         if not line or '京东' in line or '¥' in line or '去购买' in line or '广告' in line:
             continue
         
-        # 检测题目格式 1：数字. 格式 (旧格式)
-        question_match_old = re.match(r'^(\d+)\.\s*(.+)$', line)
+        # 检测题目格式 1：数字. 格式 (旧格式)，兼容 **1.** 加粗标记
+        question_match_old = re.match(r'^(?:\*\*)?(\d+)\.(?:\*\*)?\s*(.+)$', line)
         # 检测题目格式 2："题目 X：" 格式 (新格式)
         question_match_new = re.match(r'^题目\s*(\d+)\s*[：:]\s*(.+)$', line)
+        # 检测题目格式 3："题目：" 格式（无编号，语文题）
+        question_match_no_id = re.match(r'^题目\s*[：:]\s*(.+)$', line)
         # 检测答案格式 2："答案 X：" 格式 (新格式)
         answer_match_new = re.match(r'^答案\s*(\d+)\s*[：:]\s*(.+)$', line)
+        # 检测答案格式 3："答案：" 格式（无编号，语文题）
+        answer_match_no_id = re.match(r'^答案\s*[：:]\s*(.+)$', line)
         
         # 处理新题目
         if question_match_old or question_match_new:
             # 保存之前的题目
             if current_id is not None and current_question:
                 if is_format_type == "old":
-                    # 旧格式：从 answer_lines 提取答案
-                    if answer_lines:
+                    if current_answer:
+                        # 语文题格式：答案已通过 "答案：" 行设置
+                        questions.append(ExamQuestion(
+                            id=current_id,
+                            question=current_question.strip(),
+                            answer=current_answer.strip()
+                        ))
+                    elif answer_lines:
                         answer_text = '\n'.join(answer_lines).strip()
                         answer_match = re.search(r'答[：:]\s*(.+)$', answer_text)
                         if answer_match:
                             clean_answer = answer_match.group(1).strip()
                         else:
                             clean_answer = answer_text
-                        
+
                         questions.append(ExamQuestion(
                             id=current_id,
                             question=current_question.strip(),
                             answer=clean_answer.strip()
                         ))
                 elif is_format_type == "new" and current_answer:
-                    # 新格式：直接使用 current_answer
                     questions.append(ExamQuestion(
                         id=current_id,
                         question=current_question.strip(),
                         answer=current_answer.strip()
                     ))
-            
+
             # 处理新题目
             if question_match_old:
                 current_id = int(question_match_old.group(1))
@@ -93,14 +103,28 @@ def parse_exam_questions(file_path):
                 is_format_type = "old"
                 answer_lines = []
                 current_answer = None
+                chinese_format = False
             else:
                 current_id = int(question_match_new.group(1))
                 current_question = question_match_new.group(2)
                 is_format_type = "new"
                 current_answer = None
                 answer_lines = []
+                chinese_format = False
             continue
-        
+
+        # 处理无编号的 "题目：" 行（语文题格式），追加到当前题目
+        if question_match_no_id and is_format_type == "old":
+            current_question = current_question + '\n' + question_match_no_id.group(1)
+            chinese_format = True
+            continue
+
+        # 处理无编号的 "答案：" 行（语文题格式）
+        if answer_match_no_id and is_format_type == "old":
+            current_answer = answer_match_no_id.group(1)
+            chinese_format = False
+            continue
+
         # 处理新格式的答案行
         if answer_match_new and is_format_type == "new":
             ans_id = int(answer_match_new.group(1))
@@ -112,32 +136,46 @@ def parse_exam_questions(file_path):
                 if current_id is not None and current_question:
                     current_answer = ans_text
             continue
-        
+
         # 处理旧格式内容行
         if is_format_type == "old":
             # 跳过 "解题思路" 开头的行
             if line.startswith('解题思路'):
                 continue
-            
+
             # 跳过或接受 "答题" 开头的行
             if line.startswith('答题'):
                 continue
-            
-            # 收集答案行
-            answer_lines.append(line)
+
+            if chinese_format:
+                # 语文题格式：选项行追加到题目
+                current_question = current_question + '\n' + line
+            elif not current_answer and re.match(r'^[A-E]\.\s', line):
+                # 英语题格式：选项行追加到题目
+                current_question = current_question + '\n' + line
+            else:
+                # 收集答案行
+                answer_lines.append(line)
             continue
     
     # 处理最后一个题目
     if current_id is not None and current_question:
         if is_format_type == "old":
-            if answer_lines:
+            if current_answer:
+                # 语文题格式：答案已通过 "答案：" 行设置
+                questions.append(ExamQuestion(
+                    id=current_id,
+                    question=current_question.strip(),
+                    answer=current_answer.strip()
+                ))
+            elif answer_lines:
                 answer_text = '\n'.join(answer_lines).strip()
                 answer_match = re.search(r'答[：:]\s*(.+)$', answer_text)
                 if answer_match:
                     clean_answer = answer_match.group(1).strip()
                 else:
                     clean_answer = answer_text
-                
+
                 questions.append(ExamQuestion(
                     id=current_id,
                     question=current_question.strip(),

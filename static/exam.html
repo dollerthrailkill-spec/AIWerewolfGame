@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 模型考试 - 暗黑奇幻版</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link href="/static/css/style.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
@@ -151,6 +152,23 @@
                         <i class="fa fa-arrow-right mr-2"></i> 下一题
                     </button>
                 </div>
+
+                <div id="auto-exam-controls" class="hidden mt-4">
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="flex-1 bg-gray-800/60 rounded-full h-2 overflow-hidden">
+                            <div id="auto-exam-progress-bar" class="bg-gradient-to-r from-gold-500 to-gold-400 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                        <span id="auto-exam-progress-text" class="text-xs text-gray-400 whitespace-nowrap">0/0</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span id="auto-exam-status" class="text-sm text-gold-400">
+                            <i class="fa fa-spinner fa-spin mr-1"></i> 自动考试中...
+                        </span>
+                        <button id="stop-auto-exam-btn" class="bg-red-900/60 border border-red-500/30 hover:border-red-500 text-red-300 py-1.5 px-4 rounded-lg text-sm transition-all duration-300 hover:bg-red-500/10">
+                            <i class="fa fa-stop mr-1"></i> 停止自动考试
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <div id="exam-complete" class="hidden text-center">
@@ -185,6 +203,8 @@
         let answers = [];
         let examFiles = [];
         let selectedFile = null;
+        let autoExamRunning = false;
+        let autoExamStopRequested = false;
 
         // 转义 HTML 特殊字符，防止 XSS
         function escapeHtml(text) {
@@ -389,12 +409,26 @@
             };
             container.appendChild(startBtn);
 
+            const autoBtn = document.createElement('button');
+            autoBtn.id = 'auto-exam-btn';
+            autoBtn.className = 'w-full mt-3 bg-gray-800 border-2 border-gold-500/30 hover:border-gold-500 text-gray-100 py-3 px-6 rounded-lg font-noto-sans transition-all duration-300 hover:bg-gold-500/10 shadow-lg';
+            autoBtn.innerHTML = '<i class="fa fa-forward mr-2"></i> 自动考试（逐题自动请求模型）';
+            autoBtn.disabled = true;
+            autoBtn.onclick = () => {
+                playSound({ id: 'button-click' });
+                if (selectedProviderId && selectedModel && selectedFile) {
+                    startAutoExam();
+                }
+            };
+            container.appendChild(autoBtn);
+
             let hasSelected = false;
             container.querySelectorAll('.model-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     hasSelected = true;
                     if (selectedFile) {
                         startBtn.disabled = false;
+                        autoBtn.disabled = false;
                     }
                 });
             });
@@ -539,10 +573,12 @@
 
             document.getElementById('submit-answer-btn').classList.add('hidden');
 
-            if (currentQuestionIndex < questions.length - 1) {
-                document.getElementById('next-question-btn').classList.remove('hidden');
-            } else {
-                setTimeout(showExamComplete, 1500);
+            if (!autoExamRunning) {
+                if (currentQuestionIndex < questions.length - 1) {
+                    document.getElementById('next-question-btn').classList.remove('hidden');
+                } else {
+                    setTimeout(showExamComplete, 1500);
+                }
             }
 
             updateScoreDisplay();
@@ -569,7 +605,134 @@
             document.getElementById('incorrect-count').textContent = (questions.length || 0) - (correctCount || 0);
         }
 
+        async function startAutoExam() {
+            autoExamRunning = true;
+            autoExamStopRequested = false;
+            await startExam();
+            if (!questions.length) {
+                autoExamRunning = false;
+                return;
+            }
+            document.getElementById('auto-exam-controls').classList.remove('hidden');
+            document.getElementById('submit-answer-btn').classList.add('hidden');
+            document.getElementById('next-question-btn').classList.add('hidden');
+            document.getElementById('stop-auto-exam-btn').onclick = stopAutoExam;
+            updateAutoExamProgress();
+            await runAutoExamLoop();
+        }
+
+        function stopAutoExam() {
+            autoExamStopRequested = true;
+            document.getElementById('auto-exam-status').innerHTML = '<i class="fa fa-pause mr-1"></i> 正在停止...';
+            document.getElementById('stop-auto-exam-btn').disabled = true;
+        }
+
+        function updateAutoExamProgress() {
+            const done = currentQuestionIndex;
+            const total = questions.length;
+            const pct = total > 0 ? (done / total) * 100 : 0;
+            document.getElementById('auto-exam-progress-bar').style.width = pct + '%';
+            document.getElementById('auto-exam-progress-text').textContent = done + '/' + total;
+        }
+
+        async function runAutoExamLoop() {
+            while (currentQuestionIndex < questions.length && !autoExamStopRequested) {
+                updateAutoExamProgress();
+                document.getElementById('auto-exam-status').innerHTML =
+                    '<i class="fa fa-spinner fa-spin mr-1"></i> 正在请求第 ' + (currentQuestionIndex + 1) + ' 题...';
+
+                try {
+                    await submitAnswerInternal();
+                } catch (e) {
+                    console.error('自动考试第 ' + (currentQuestionIndex + 1) + ' 题失败:', e);
+                }
+
+                if (!autoExamStopRequested && currentQuestionIndex < questions.length - 1) {
+                    document.getElementById('auto-exam-status').innerHTML =
+                        '<i class="fa fa-clock-o mr-1"></i> 等待 1.5 秒后请求下一题...';
+                    await sleep(1500);
+                    currentQuestionIndex++;
+                    document.getElementById('answer-result').classList.add('hidden');
+                    showCurrentQuestion();
+                    document.getElementById('submit-answer-btn').classList.add('hidden');
+                    document.getElementById('next-question-btn').classList.add('hidden');
+                } else if (!autoExamStopRequested) {
+                    currentQuestionIndex++;
+                    updateAutoExamProgress();
+                    break;
+                }
+            }
+
+            if (autoExamStopRequested) {
+                document.getElementById('auto-exam-status').innerHTML =
+                    '<i class="fa fa-stop-circle mr-1"></i> 已停止，当前进度 ' + currentQuestionIndex + '/' + questions.length;
+                document.getElementById('auto-exam-controls').classList.add('hidden');
+                document.getElementById('submit-answer-btn').classList.remove('hidden');
+                if (currentQuestionIndex < questions.length - 1) {
+                    document.getElementById('next-question-btn').classList.remove('hidden');
+                }
+            } else {
+                document.getElementById('auto-exam-controls').classList.add('hidden');
+                showExamComplete();
+            }
+
+            autoExamRunning = false;
+            autoExamStopRequested = false;
+        }
+
+        async function submitAnswerInternal() {
+            if (!selectedProviderId || !selectedModel) return;
+
+            const q = questions[currentQuestionIndex];
+            if (!q) return;
+
+            const payload = {
+                provider_id: selectedProviderId,
+                question_id: q.id,
+                model: selectedModel
+            };
+            if (selectedFile) {
+                payload.file_name = selectedFile;
+            }
+
+            const maxRetries = 3;
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+                if (autoExamStopRequested) throw new Error('用户停止');
+
+                document.getElementById('loading-indicator').classList.remove('hidden');
+
+                const resp = await fetch('/api/exam/answer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await resp.json();
+                document.getElementById('loading-indicator').classList.add('hidden');
+
+                if (data.success) {
+                    showAnswerResult(data);
+                    return;
+                }
+
+                if (attempt < maxRetries - 1) {
+                    document.getElementById('auto-exam-status').innerHTML =
+                        '<i class="fa fa-refresh mr-1"></i> 请求失败，2秒后重试...';
+                    await sleep(2000);
+                } else {
+                    throw new Error(data.message || '请求失败');
+                }
+            }
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
         async function restartExam() {
+            autoExamRunning = false;
+            autoExamStopRequested = false;
+            document.getElementById('auto-exam-controls').classList.add('hidden');
             document.getElementById('file-selection').classList.remove('hidden');
             document.getElementById('provider-selection').classList.remove('hidden');
             document.getElementById('exam-info').classList.add('hidden');

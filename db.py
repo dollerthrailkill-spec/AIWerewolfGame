@@ -310,10 +310,9 @@ class Database:
         }
 
     def sync_exp_from_achievements_and_challenges(self):
-        """同步成就和每日挑战的积分到经验值"""
         conn = self._get_conn()
+        now = datetime.now().isoformat()
         
-        # 计算成就总积分
         achievements_row = conn.execute("""
             SELECT SUM(a.points) as total_points
             FROM achievement_unlocks au
@@ -321,7 +320,6 @@ class Database:
         """).fetchone()
         achievements_points = achievements_row["total_points"] or 0
         
-        # 计算每日挑战总积分
         challenges_row = conn.execute("""
             SELECT SUM(points) as total_points
             FROM daily_challenge_progress
@@ -330,12 +328,44 @@ class Database:
         challenges_points = challenges_row["total_points"] or 0
         
         total_points = achievements_points + challenges_points
+        target_exp = total_points * 10
         
-        # 将积分转化为经验值（1 积分 = 10 经验）
-        exp_amount = total_points * 10
+        current = self.get_user_exp()
+        old_level = current["current_level"]
         
-        # 更新经验值
-        return self.add_exp(exp_amount)
+        new_level = 1
+        for level in range(1, 1000):
+            exp_needed = self.exp_for_level(level + 1)
+            if target_exp >= exp_needed:
+                new_level = level + 1
+            else:
+                break
+        new_level = min(new_level, 999)
+        
+        conn.execute("""
+            UPDATE user_exp
+            SET total_exp = ?, current_level = ?, last_updated = ?
+            WHERE user_id = 'default'
+        """, (target_exp, new_level, now))
+        conn.commit()
+        
+        level_up = new_level > old_level
+        
+        exp_current = self.exp_for_level(new_level)
+        exp_next = self.exp_for_level(new_level + 1)
+        exp_in_level = target_exp - exp_current
+        progress = (exp_in_level / (exp_next - exp_current)) * 100 if (exp_next - exp_current) > 0 else 100
+        
+        return {
+            "total_exp": target_exp,
+            "current_level": new_level,
+            "exp_for_current": exp_current,
+            "exp_for_next": exp_next,
+            "exp_in_level": exp_in_level,
+            "progress": min(max(progress, 0), 100),
+            "level_up": level_up,
+            "last_updated": now
+        }
 
     def exec_in_transaction(self, operations: list):
         """在单个事务中执行多个数据库操作
