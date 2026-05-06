@@ -922,6 +922,40 @@ async def submit_exam_answer(input_data: ExamAnswerInput):
     }
 
 
+class ExamRecordInput(BaseModel):
+    model_name: str
+    subject: str
+    score: int
+    total_questions: int
+    correct_count: int
+    exam_date: str = None
+
+
+@app.post("/api/exam/record", summary="保存考试记录", description="考试完成后保存本次考试记录")
+async def save_exam_record(input_data: ExamRecordInput):
+    try:
+        record_id = db.save_exam_record(
+            model_name=input_data.model_name,
+            subject=input_data.subject,
+            score=input_data.score,
+            total_questions=input_data.total_questions,
+            correct_count=input_data.correct_count,
+            exam_date=input_data.exam_date,
+        )
+        return {"success": True, "record_id": record_id}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+@app.get("/api/exam/records", summary="获取考试记录", description="分页获取考试记录，按分数从高到低排序，每页10条")
+async def get_exam_records(page: int = Query(1, ge=1)):
+    try:
+        result = db.get_exam_records(page=page, page_size=10)
+        return {"success": True, **result}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
 @app.get("/exam")
 async def exam_page():
     """考试页面"""

@@ -133,6 +133,21 @@ class Database:
             );
 
             CREATE INDEX IF NOT EXISTS idx_user_exp_user ON user_exp(user_id);
+
+            -- ==================== 考试记录 ====================
+            CREATE TABLE IF NOT EXISTS exam_records (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                model_name TEXT NOT NULL,
+                subject TEXT NOT NULL DEFAULT '综合',
+                score INTEGER NOT NULL DEFAULT 0,
+                total_questions INTEGER NOT NULL DEFAULT 0,
+                correct_count INTEGER NOT NULL DEFAULT 0,
+                exam_date TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_exam_records_score ON exam_records(score DESC);
+            CREATE INDEX IF NOT EXISTS idx_exam_records_date ON exam_records(exam_date);
         """)
 
         # 插入默认成就和初始化用户数据
@@ -825,6 +840,94 @@ class Database:
         return {
             "size_bytes": db_size,
             "size_mb": round(db_size / (1024 * 1024), 2)
+        }
+
+    # ==================== 考试记录操作 ====================
+
+    def save_exam_record(self, model_name: str, subject: str, score: int,
+                         total_questions: int, correct_count: int,
+                         exam_date: str = None) -> int:
+        """保存考试记录，返回记录 ID"""
+        conn = self._get_conn()
+        now = datetime.now().isoformat()
+        if exam_date is None:
+            exam_date = date.today().isoformat()
+        cursor = conn.execute("""
+            INSERT INTO exam_records (model_name, subject, score, total_questions,
+                                      correct_count, exam_date, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (model_name, subject, score, total_questions, correct_count, exam_date, now))
+        conn.commit()
+        return cursor.lastrowid
+
+    def get_exam_records(self, page: int = 1, page_size: int = 10) -> dict:
+        """分页获取考试记录，按模型聚合各科分数，按总分从高到低排序"""
+        conn = self._get_conn()
+        offset = (page - 1) * page_size
+
+        subjects = ['数学', '语文', '英语', '物理', '化学']
+
+        total_row = conn.execute(
+            "SELECT COUNT(DISTINCT model_name) as cnt FROM exam_records"
+        ).fetchone()
+        total = total_row["cnt"] if total_row else 0
+
+        rows = conn.execute("""
+            SELECT
+                model_name,
+                MAX(CASE WHEN subject = '数学' THEN score END) as math_score,
+                MAX(CASE WHEN subject = '语文' THEN score END) as chinese_score,
+                MAX(CASE WHEN subject = '英语' THEN score END) as english_score,
+                MAX(CASE WHEN subject = '物理' THEN score END) as physics_score,
+                MAX(CASE WHEN subject = '化学' THEN score END) as chemistry_score,
+                MAX(exam_date) as latest_exam_date
+            FROM exam_records
+            GROUP BY model_name
+            ORDER BY (
+                COALESCE(MAX(CASE WHEN subject = '数学' THEN score END), 0) +
+                COALESCE(MAX(CASE WHEN subject = '语文' THEN score END), 0) +
+                COALESCE(MAX(CASE WHEN subject = '英语' THEN score END), 0) +
+                COALESCE(MAX(CASE WHEN subject = '物理' THEN score END), 0) +
+                COALESCE(MAX(CASE WHEN subject = '化学' THEN score END), 0)
+            ) DESC
+            LIMIT ? OFFSET ?
+        """, (page_size, offset)).fetchall()
+
+        records = []
+        for r in rows:
+            scores = {
+                '数学': r["math_score"],
+                '语文': r["chinese_score"],
+                '英语': r["english_score"],
+                '物理': r["physics_score"],
+                '化学': r["chemistry_score"],
+            }
+            all_completed = all(scores[s] is not None for s in subjects)
+            total_score = sum(scores[s] for s in subjects) if all_completed else None
+
+            exam_date = r["latest_exam_date"]
+            if exam_date:
+                try:
+                    dt = datetime.fromisoformat(exam_date)
+                    exam_date = f"{dt.month}月{dt.day}日"
+                except (ValueError, TypeError):
+                    pass
+
+            records.append({
+                "model_name": r["model_name"],
+                "scores": scores,
+                "total_score": total_score,
+                "exam_date": exam_date,
+            })
+
+        total_pages = (total + page_size - 1) // page_size if total > 0 else 0
+
+        return {
+            "records": records,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "total_pages": total_pages,
         }
 
 

@@ -44,7 +44,6 @@
             border-color: #fbbf24;
             background-color: rgba(251, 191, 36, 0.1);
         }
-        /* 模型按钮选中状态 */
         .model-btn.selected {
             background: linear-gradient(135deg, rgba(212, 168, 48, 0.3), rgba(212, 168, 48, 0.1));
             border-color: #fbbf24;
@@ -57,23 +56,40 @@
             font-weight: bold;
             margin-right: 8px;
         }
+        .tab-btn {
+            position: relative;
+            transition: all 0.3s;
+        }
+        .tab-btn.active {
+            color: #fbbf24;
+            border-bottom-color: #fbbf24;
+        }
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            height: 2px;
+            background: #fbbf24;
+            border-radius: 1px;
+        }
     </style>
 </head>
 <body class="font-noto-sans text-gray-100 min-h-screen overflow-x-hidden selection:bg-gold-500/30">
-    <!-- ====== Background ====== -->
     <div class="fixed inset-0 z-0">
         <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('/static/images/backgrounds/day-discussion.webp')"></div>
         <div class="absolute inset-0 bg-black/60"></div>
     </div>
-    
-    <!-- ====== Grain Overlay ====== -->
+
     <div class="grain-overlay fixed inset-0 z-0 pointer-events-none"></div>
-    
+
     <audio id="button-click" src="/static/audio/button-click.wav" preload="none"></audio>
-    
+
     <script src="/static/js/audio.js"></script>
 
-    <div id="exam-page" class="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-8">
+    <div id="exam-page" class="relative z-10 min-h-screen flex flex-col items-center px-4 py-8">
         <button id="back-btn" class="absolute top-4 left-4 bg-gray-900/80 border-2 border-gold-500/30 hover:border-gold-500 text-gray-100 py-2 px-4 rounded-lg font-noto-sans transition-all duration-300 hover:bg-gold-500/10 shadow-lg">
             <i class="fa fa-arrow-left mr-2"></i> 返回主页
         </button>
@@ -82,11 +98,20 @@
             AI 模型考试
         </h1>
 
-        <div class="bg-gray-900/90 border-2 border-gold-500/20 rounded-lg p-6 max-w-3xl w-full shadow-xl">
+        <div class="flex gap-1 mb-6 border-b-2 border-gold-500/20">
+            <button class="tab-btn active text-lg font-cinzel text-gray-400 hover:text-gold-400 py-2 px-6 border-b-2 border-transparent tracking-wide transition-all" data-tab="exam">
+                <i class="fa fa-pencil-square-o mr-2"></i> 考试
+            </button>
+            <button class="tab-btn text-lg font-cinzel text-gray-400 hover:text-gold-400 py-2 px-6 border-b-2 border-transparent tracking-wide transition-all" data-tab="records">
+                <i class="fa fa-list-alt mr-2"></i> 考试记录
+            </button>
+        </div>
+
+        <div id="exam-tab" class="tab-content bg-gray-900/90 border-2 border-gold-500/20 rounded-lg p-6 max-w-3xl w-full shadow-xl">
             <div id="file-selection" class="mb-6">
                 <h3 class="text-xl font-cinzel text-white mb-4 tracking-wide">选择题库</h3>
                 <div id="file-list" class="grid gap-3 mb-4"></div>
-                
+
                 <div id="upload-section" class="mt-4">
                     <h4 class="font-cinzel text-white mb-2 tracking-wide">上传新题库</h4>
                     <div id="drop-zone" class="bg-gray-900/60 border-2 border-gold-500/30 rounded-lg p-6 text-center cursor-pointer transition-all duration-300 hover:border-gold-500">
@@ -182,8 +207,46 @@
                     <p>正确: <span id="correct-count" class="text-green-400">0</span> 题</p>
                     <p>错误: <span id="incorrect-count" class="text-red-400">0</span> 题</p>
                 </div>
-                <button id="restart-btn" class="bg-gray-800 border-2 border-gold-500/30 hover:border-gold-500 text-gray-100 py-2 px-6 rounded-lg font-noto-sans transition-all duration-300 hover:bg-gold-500/10 shadow-lg">
-                    <i class="fa fa-refresh mr-2"></i> 重新考试
+                <div class="flex justify-center gap-4">
+                    <button id="restart-btn" class="bg-gray-800 border-2 border-gold-500/30 hover:border-gold-500 text-gray-100 py-2 px-6 rounded-lg font-noto-sans transition-all duration-300 hover:bg-gold-500/10 shadow-lg">
+                        <i class="fa fa-refresh mr-2"></i> 重新考试
+                    </button>
+                    <button id="view-records-btn" class="bg-gray-800 border-2 border-gold-500/30 hover:border-gold-500 text-gray-100 py-2 px-6 rounded-lg font-noto-sans transition-all duration-300 hover:bg-gold-500/10 shadow-lg">
+                        <i class="fa fa-list-alt mr-2"></i> 考试记录
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="records-tab" class="tab-content hidden bg-gray-900/90 border-2 border-gold-500/20 rounded-lg p-6 max-w-4xl w-full shadow-xl">
+            <div id="records-table-container" class="overflow-x-auto">
+                <table class="w-full text-left min-w-[700px]">
+                    <thead>
+                        <tr class="border-b border-gold-500/20 text-gold-400 text-sm">
+                            <th class="py-2 px-3">模型名称</th>
+                            <th class="py-2 px-3 text-center">数学</th>
+                            <th class="py-2 px-3 text-center">语文</th>
+                            <th class="py-2 px-3 text-center">英语</th>
+                            <th class="py-2 px-3 text-center">物理</th>
+                            <th class="py-2 px-3 text-center">化学</th>
+                            <th class="py-2 px-3 text-center">总分</th>
+                            <th class="py-2 px-3 text-center">考试时间</th>
+                        </tr>
+                    </thead>
+                    <tbody id="records-tbody"></tbody>
+                </table>
+                <div id="records-empty" class="hidden text-center py-8 text-gray-500">
+                    <i class="fa fa-inbox text-3xl mb-2"></i>
+                    <p>暂无考试记录</p>
+                </div>
+            </div>
+            <div id="records-pagination" class="flex justify-center items-center gap-2 mt-4 hidden">
+                <button id="prev-page-btn" class="bg-gray-800 border border-gold-500/30 hover:border-gold-500 text-gray-300 py-1 px-3 rounded text-sm transition-all disabled:opacity-30 disabled:cursor-not-allowed">
+                    <i class="fa fa-chevron-left mr-1"></i> 上一页
+                </button>
+                <span id="page-info" class="text-sm text-gray-400 px-3"></span>
+                <button id="next-page-btn" class="bg-gray-800 border border-gold-500/30 hover:border-gold-500 text-gray-300 py-1 px-3 rounded text-sm transition-all disabled:opacity-30 disabled:cursor-not-allowed">
+                    下一页 <i class="fa fa-chevron-right ml-1"></i>
                 </button>
             </div>
         </div>
@@ -206,14 +269,12 @@
         let autoExamRunning = false;
         let autoExamStopRequested = false;
 
-        // 转义 HTML 特殊字符，防止 XSS
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
 
-        // 页面加载完成
         document.addEventListener('DOMContentLoaded', () => {
             initAudio();
             loadExamFiles();
@@ -232,8 +293,18 @@
             document.getElementById('submit-answer-btn').addEventListener('click', submitAnswer);
             document.getElementById('next-question-btn').addEventListener('click', nextQuestion);
             document.getElementById('restart-btn').addEventListener('click', restartExam);
+            document.getElementById('view-records-btn').addEventListener('click', () => {
+                playSound({ id: 'button-click' });
+                switchTab('records');
+            });
 
-            // 文件上传事件
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    playSound({ id: 'button-click' });
+                    switchTab(btn.dataset.tab);
+                });
+            });
+
             const dropZone = document.getElementById('drop-zone');
             const fileInput = document.getElementById('file-input');
 
@@ -259,10 +330,22 @@
             });
         }
 
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector(`.tab-btn[data-tab="${tabName}"]`).classList.add('active');
+
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+            document.getElementById(tabName + '-tab').classList.remove('hidden');
+
+            if (tabName === 'records') {
+                loadExamRecords(1);
+            }
+        }
+
         async function loadExamFiles() {
             try {
                 const resp = await fetch('/api/exam/files', {
-                    cache: 'no-store' // 禁用缓存，确保获取最新数据
+                    cache: 'no-store'
                 });
                 const data = await resp.json();
                 if (data.success) {
@@ -305,7 +388,6 @@
                 });
             });
 
-            // 默认选择第一个
             if (examFiles.length > 0) {
                 container.querySelector('.file-list-item').click();
             }
@@ -330,7 +412,7 @@
                 const data = await resp.json();
                 if (data.success) {
                     alert(data.message);
-                    await loadExamFiles(); // 刷新文件列表
+                    await loadExamFiles();
                 } else {
                     alert('上传失败：' + data.message);
                 }
@@ -343,7 +425,7 @@
         async function loadProviders() {
             try {
                 const resp = await fetch('/api/config', {
-                    cache: 'no-store' // 禁用缓存，确保获取最新数据
+                    cache: 'no-store'
                 });
                 const data = await resp.json();
                 providers = Object.values(data.providers || {});
@@ -377,7 +459,7 @@
                         <div class="font-cinzel text-lg text-gold-400 mb-3">${escapeHtml(p.name)}</div>
                         <div class="models-grid grid gap-2">
                             ${models.map(m => `
-                                <button class="model-btn bg-gray-900 border border-gold-500/20 hover:border-gold-500 text-gray-100 py-2 px-3 rounded transition-all duration-300 text-sm text-left" 
+                                <button class="model-btn bg-gray-900 border border-gold-500/20 hover:border-gold-500 text-gray-100 py-2 px-3 rounded transition-all duration-300 text-sm text-left"
                                         data-provider-id="${escapeHtml(p.id)}" data-model="${escapeHtml(m)}">
                                     ${escapeHtml(m)}
                                 </button>
@@ -422,6 +504,16 @@
             };
             container.appendChild(autoBtn);
 
+            const recordsBtn = document.createElement('button');
+            recordsBtn.id = 'goto-records-btn';
+            recordsBtn.className = 'w-full mt-3 bg-gray-800 border-2 border-gold-500/30 hover:border-gold-500 text-gray-100 py-3 px-6 rounded-lg font-noto-sans transition-all duration-300 hover:bg-gold-500/10 shadow-lg';
+            recordsBtn.innerHTML = '<i class="fa fa-list-alt mr-2"></i> 考试记录';
+            recordsBtn.onclick = () => {
+                playSound({ id: 'button-click' });
+                switchTab('records');
+            };
+            container.appendChild(recordsBtn);
+
             let hasSelected = false;
             container.querySelectorAll('.model-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -436,12 +528,12 @@
 
         async function startExam() {
             try {
-                const url = selectedFile ? 
-                    `/api/exam/questions?file_name=${encodeURIComponent(selectedFile)}` : 
+                const url = selectedFile ?
+                    `/api/exam/questions?file_name=${encodeURIComponent(selectedFile)}` :
                     '/api/exam/questions';
-                
+
                 const resp = await fetch(url, {
-                    cache: 'no-store' // 禁用缓存，确保获取最新题目
+                    cache: 'no-store'
                 });
                 const data = await resp.json();
                 if (data.success) {
@@ -450,7 +542,7 @@
                         alert('题库为空，请先上传题目文件');
                         return;
                     }
-                    
+
                     currentQuestionIndex = 0;
                     totalScore = 0;
                     correctCount = 0;
@@ -462,7 +554,6 @@
                     document.getElementById('question-area').classList.remove('hidden');
                     document.getElementById('exam-complete').classList.add('hidden');
 
-                    // 更新总分显示
                     document.getElementById('max-score').textContent = questions.length * 2;
 
                     showCurrentQuestion();
@@ -481,11 +572,10 @@
                 alert('题目数据加载失败');
                 return;
             }
-            
-            // 安全地显示题目信息，提供默认值
+
             const questionId = q.id !== undefined ? q.id : (currentQuestionIndex + 1);
             const questionText = q.question || '题目内容加载失败';
-            
+
             document.getElementById('question-progress').textContent = `${currentQuestionIndex + 1} / ${questions.length}`;
             document.getElementById('current-question-num').textContent = `第 ${questionId} 题`;
             document.getElementById('question-text').textContent = questionText;
@@ -545,7 +635,6 @@
         }
 
         function showAnswerResult(data) {
-            // 安全地获取数据，提供默认值
             const score = typeof data.score === 'number' ? data.score : 0;
             const isCorrect = data.is_correct === true;
             const modelAnswer = data.model_answer || '模型未返回答案';
@@ -603,6 +692,93 @@
             document.getElementById('final-score').textContent = totalScore || 0;
             document.getElementById('correct-count').textContent = correctCount || 0;
             document.getElementById('incorrect-count').textContent = (questions.length || 0) - (correctCount || 0);
+            saveExamRecord();
+        }
+
+        function extractSubject(fileName) {
+            if (!fileName) return '综合';
+            const name = fileName.toLowerCase();
+            if (name.includes('语文') || name.includes('chinese')) return '语文';
+            if (name.includes('数学') || name.includes('奥数') || name.includes('math')) return '数学';
+            if (name.includes('英语') || name.includes('english')) return '英语';
+            if (name.includes('物理') || name.includes('physics')) return '物理';
+            if (name.includes('化学') || name.includes('chemistry')) return '化学';
+            return '综合';
+        }
+
+        async function saveExamRecord() {
+            if (!selectedModel || !selectedFile) return;
+            try {
+                await fetch('/api/exam/record', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model_name: selectedModel,
+                        subject: extractSubject(selectedFile),
+                        score: totalScore,
+                        total_questions: questions.length,
+                        correct_count: correctCount,
+                    })
+                });
+            } catch (e) {
+                console.error('保存考试记录失败', e);
+            }
+        }
+
+        async function loadExamRecords(page) {
+            const tbody = document.getElementById('records-tbody');
+            const empty = document.getElementById('records-empty');
+            const pagination = document.getElementById('records-pagination');
+            const pageInfo = document.getElementById('page-info');
+            const prevBtn = document.getElementById('prev-page-btn');
+            const nextBtn = document.getElementById('next-page-btn');
+
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-gray-500"><i class="fa fa-spinner fa-spin mr-2"></i>加载中...</td></tr>';
+
+            try {
+                const resp = await fetch('/api/exam/records?page=' + page);
+                const data = await resp.json();
+
+                if (!data.success || !data.records || data.records.length === 0) {
+                    tbody.innerHTML = '';
+                    empty.classList.remove('hidden');
+                    pagination.classList.add('hidden');
+                    return;
+                }
+
+                empty.classList.add('hidden');
+                const subjects = ['数学', '语文', '英语', '物理', '化学'];
+                tbody.innerHTML = data.records.map(r => {
+                    const subjectCells = subjects.map(s => {
+                        const val = r.scores[s];
+                        if (val === null || val === undefined) {
+                            return '<td class="py-2 px-3 text-center text-gray-600">-</td>';
+                        }
+                        return '<td class="py-2 px-3 text-center text-gold-400 font-bold">' + val + '</td>';
+                    }).join('');
+
+                    const totalDisplay = r.total_score !== null && r.total_score !== undefined
+                        ? '<span class="text-gold-400 font-bold text-lg">' + r.total_score + '</span>'
+                        : '<span class="text-gray-600">-</span>';
+
+                    return '<tr class="border-b border-gray-700/30 hover:bg-gray-800/40 transition-colors">'
+                        + '<td class="py-2 px-3 text-gray-200 font-medium">' + escapeHtml(r.model_name) + '</td>'
+                        + subjectCells
+                        + '<td class="py-2 px-3 text-center">' + totalDisplay + '</td>'
+                        + '<td class="py-2 px-3 text-center text-gray-400 text-sm">' + (r.exam_date || '-') + '</td>'
+                        + '</tr>';
+                }).join('');
+
+                pagination.classList.remove('hidden');
+                pageInfo.textContent = '第 ' + data.page + ' / ' + data.total_pages + ' 页 (共 ' + data.total + ' 条)';
+                prevBtn.disabled = data.page <= 1;
+                nextBtn.disabled = data.page >= data.total_pages;
+                prevBtn.onclick = function() { if (data.page > 1) loadExamRecords(data.page - 1); };
+                nextBtn.onclick = function() { if (data.page < data.total_pages) loadExamRecords(data.page + 1); };
+            } catch (e) {
+                console.error('加载考试记录失败', e);
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-red-400">加载失败，请重试</td></tr>';
+            }
         }
 
         async function startAutoExam() {
@@ -641,24 +817,35 @@
                 document.getElementById('auto-exam-status').innerHTML =
                     '<i class="fa fa-spinner fa-spin mr-1"></i> 正在请求第 ' + (currentQuestionIndex + 1) + ' 题...';
 
+                let answered = false;
                 try {
-                    await submitAnswerInternal();
+                    answered = await submitAnswerInternal();
                 } catch (e) {
                     console.error('自动考试第 ' + (currentQuestionIndex + 1) + ' 题失败:', e);
                 }
 
-                if (!autoExamStopRequested && currentQuestionIndex < questions.length - 1) {
+                if (autoExamStopRequested) break;
+
+                if (!answered) {
                     document.getElementById('auto-exam-status').innerHTML =
-                        '<i class="fa fa-clock-o mr-1"></i> 等待 1.5 秒后请求下一题...';
-                    await sleep(1500);
+                        '<i class="fa fa-exclamation-circle mr-1"></i> 第 ' + (currentQuestionIndex + 1) + ' 题请求失败，3秒后重试...';
+                    await sleep(3000);
+                    continue;
+                }
+
+                if (currentQuestionIndex < questions.length - 1) {
+                    document.getElementById('auto-exam-status').innerHTML =
+                        '<i class="fa fa-check-circle mr-1"></i> 第 ' + (currentQuestionIndex + 1) + ' 题已完成，2秒后进入下一题...';
+                    await sleep(2000);
                     currentQuestionIndex++;
                     document.getElementById('answer-result').classList.add('hidden');
                     showCurrentQuestion();
                     document.getElementById('submit-answer-btn').classList.add('hidden');
                     document.getElementById('next-question-btn').classList.add('hidden');
-                } else if (!autoExamStopRequested) {
-                    currentQuestionIndex++;
-                    updateAutoExamProgress();
+                } else {
+                    document.getElementById('auto-exam-status').innerHTML =
+                        '<i class="fa fa-check-circle mr-1"></i> 全部题目已完成！';
+                    await sleep(1000);
                     break;
                 }
             }
@@ -681,10 +868,10 @@
         }
 
         async function submitAnswerInternal() {
-            if (!selectedProviderId || !selectedModel) return;
+            if (!selectedProviderId || !selectedModel) return false;
 
             const q = questions[currentQuestionIndex];
-            if (!q) return;
+            if (!q) return false;
 
             const payload = {
                 provider_id: selectedProviderId,
@@ -707,42 +894,51 @@
                     body: JSON.stringify(payload)
                 });
 
-                const data = await resp.json();
-                document.getElementById('loading-indicator').classList.add('hidden');
+                if (resp.status === 429) {
+                    const waitTime = Math.pow(2, attempt) * 2000;
+                    document.getElementById('auto-exam-status').innerHTML =
+                        '<i class="fa fa-exclamation-triangle mr-1"></i> 请求过于频繁，等待 ' + (waitTime / 1000) + ' 秒后重试...';
+                    await sleep(waitTime);
+                    continue;
+                }
 
+                const data = await resp.json();
                 if (data.success) {
                     showAnswerResult(data);
-                    return;
+                    return true;
                 }
 
                 if (attempt < maxRetries - 1) {
                     document.getElementById('auto-exam-status').innerHTML =
-                        '<i class="fa fa-refresh mr-1"></i> 请求失败，2秒后重试...';
-                    await sleep(2000);
-                } else {
-                    throw new Error(data.message || '请求失败');
+                        '<i class="fa fa-refresh mr-1"></i> 第 ' + (currentQuestionIndex + 1) + ' 题失败，重试中 (' + (attempt + 1) + '/' + maxRetries + ')...';
+                    await sleep(1000);
                 }
             }
+
+            document.getElementById('loading-indicator').classList.add('hidden');
+            return false;
         }
 
         function sleep(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
         }
 
-        async function restartExam() {
+        function restartExam() {
+            playSound({ id: 'button-click' });
+            currentQuestionIndex = 0;
+            totalScore = 0;
+            correctCount = 0;
+            answers = [];
             autoExamRunning = false;
             autoExamStopRequested = false;
-            document.getElementById('auto-exam-controls').classList.add('hidden');
+
             document.getElementById('file-selection').classList.remove('hidden');
             document.getElementById('provider-selection').classList.remove('hidden');
             document.getElementById('exam-info').classList.add('hidden');
             document.getElementById('question-area').classList.add('hidden');
             document.getElementById('exam-complete').classList.add('hidden');
-            selectedProviderId = null;
-            selectedModel = null;
-            // 重新加载最新的提供商和题库信息
-            await loadProviders();
-            await loadExamFiles();
+            document.getElementById('auto-exam-controls').classList.add('hidden');
+            document.getElementById('total-score').textContent = '0';
         }
     </script>
 </body>
