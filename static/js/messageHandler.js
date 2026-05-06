@@ -206,7 +206,7 @@ const handleGameMessage = async (data) => {
             await onCurrentSpeaker(data);
             return;
         case 'speech':
-            await onSpeech(data);
+            await window.App.speechPlayer.onSpeech(data);
             return;
 
         // ----- 投票阶段 -----
@@ -234,7 +234,7 @@ const handleGameMessage = async (data) => {
             return;
         case 'eulogy_speech':
             hideEulogyOverlay();
-            await onSpeech({
+            await window.App.speechPlayer.onSpeech({
                 player: data.player,
                 player_id: data.player_id,
                 content: data.content,

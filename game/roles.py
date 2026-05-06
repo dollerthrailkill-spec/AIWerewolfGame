@@ -143,6 +143,7 @@ class Player:
             "name": self.name,
             "is_alive": self.is_alive,
             "seat_number": self.seat_number,
+            "model": self.model_config.model_name,
         }
         if reveal_role:
             d["role"] = self.role.value if self.role else None

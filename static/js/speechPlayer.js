@@ -114,9 +114,10 @@ const onSpeech = (data) => new Promise((resolve) => {
     const speakerIcon = document.getElementById('speaker-icon');
     const speakerName = document.getElementById('speaker-name');
     const speakerRole = document.getElementById('speaker-role');
+    const speakerModel = document.getElementById('speaker-model');
     const speechText = document.getElementById('speech-text');
 
-    if (!speakerSprite || !speakerIcon || !speakerName || !speakerRole || !speechText) {
+    if (!speakerSprite || !speakerIcon || !speakerName || !speakerRole || !speakerModel || !speechText) {
         console.error('[SpeechPlayer] Speech elements not found!');
         resolve();
         return;
@@ -131,6 +132,12 @@ const onSpeech = (data) => new Promise((resolve) => {
     speakerIcon.src = getRoleIcon(roleId);
     speakerName.textContent = data.player;
     speakerRole.textContent = roleInfo?.name || '未知';
+    
+    // 获取并设置模型名称
+    const roleType = player?.role || 'villager';
+    const modelName = player?.model || '';
+    speakerModel.textContent = modelName ? `[${modelName}]` : '';
+    
     speechText.textContent = '';
 
     window.App.currentSpeechResolve = () => {
@@ -140,7 +147,6 @@ const onSpeech = (data) => new Promise((resolve) => {
     };
 
     // 获取语音参数
-    const roleType = player?.role || 'villager';
     const voiceType = player && window.roles?.[roleType]?.voice || roleType;
 
     let voiceIndex = undefined;

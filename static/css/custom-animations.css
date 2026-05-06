@@ -83,57 +83,36 @@
     }
 }
 
-/* Apply night glows */
+/* Apply night glows - 保持边框宽度一致防止位移 */
 .seat.night-werewolf-active .avatar-wrapper {
     animation: nightGlowWerewolf 1.5s ease-in-out infinite;
-    border-width: 3px;
-    border-style: solid;
-    border-radius: 9999px;
 }
 
 .seat.night-seer-active .avatar-wrapper {
     animation: nightGlowSeer 1.5s ease-in-out infinite;
-    border-width: 3px;
-    border-style: solid;
-    border-radius: 9999px;
 }
 
 .seat.night-witch-active .avatar-wrapper {
     animation: nightGlowWitch 1.5s ease-in-out infinite;
-    border-width: 3px;
-    border-style: solid;
-    border-radius: 9999px;
 }
 
 .seat.night-guard-active .avatar-wrapper {
     animation: nightGlowGuard 1.5s ease-in-out infinite;
-    border-width: 3px;
-    border-style: solid;
-    border-radius: 9999px;
 }
 
 .seat.night-hunter-active .avatar-wrapper {
     animation: nightGlowHunter 1.5s ease-in-out infinite;
-    border-width: 3px;
-    border-style: solid;
-    border-radius: 9999px;
 }
 
 /* Day active speaker */
 .seat.seat-active .avatar-wrapper,
 .seat.seat-speaking .avatar-wrapper {
     animation: daySpeakerGlow 1.5s ease-in-out infinite;
-    border-width: 3px;
-    border-style: solid;
-    border-radius: 9999px;
 }
 
 /* Night action target highlight */
 .seat.seat-night-target .avatar-wrapper {
     animation: nightGlowWerewolf 1.2s ease-in-out infinite;
-    border-width: 3px;
-    border-style: solid;
-    border-radius: 9999px;
     border-color: #ef4444;
     box-shadow: 0 0 18px rgba(239, 68, 68, 0.7), 0 0 36px rgba(239, 68, 68, 0.35);
 }
@@ -141,9 +120,6 @@
 /* Vote target highlight */
 .seat.seat-vote-target .avatar-wrapper {
     animation: daySpeakerGlow 1.5s ease-in-out infinite;
-    border-width: 3px;
-    border-style: solid;
-    border-radius: 9999px;
     border-color: #4a90d9;
     box-shadow: 0 0 14px rgba(74, 144, 217, 0.6), 0 0 28px rgba(74, 144, 217, 0.3);
 }
@@ -153,9 +129,6 @@
     box-shadow:
         0 0 12px rgba(74, 144, 217, 0.5),
         0 0 24px rgba(74, 144, 217, 0.25);
-    border-width: 2px;
-    border-style: solid;
-    border-radius: 9999px;
 }
 
 /* ====== 3. ACTION CONNECTION LINES ====== */
