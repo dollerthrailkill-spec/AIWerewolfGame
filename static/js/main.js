@@ -33,6 +33,9 @@ const initEventListeners = () => {
     // ----- 考试按钮 -----
     bindExamButton();
 
+    // ----- 群聊按钮 -----
+    bindGroupChatButton();
+
     // ----- 游戏模式选择 -----
     bindGameModeButtons();
 
@@ -74,6 +77,20 @@ const bindExamButton = () => {
         newBtn.addEventListener('click', () => {
             playSound({ id: 'button-click' });
             setTimeout(() => { window.location.href = '/exam'; }, 100);
+        });
+    }
+};
+
+// ----- 群聊按钮 -----
+const bindGroupChatButton = () => {
+    const groupChatBtn = document.getElementById('group-chat-btn');
+    if (groupChatBtn) {
+        const newBtn = groupChatBtn.cloneNode(true);
+        groupChatBtn.parentNode.replaceChild(newBtn, groupChatBtn);
+
+        newBtn.addEventListener('click', () => {
+            playSound({ id: 'button-click' });
+            setTimeout(() => { window.location.href = '/group-chat'; }, 100);
         });
     }
 };

@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模型群聊室 - AI 狼人杀</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link href="/static/css/style.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link href="/static/css/custom-animations.css" rel="stylesheet">
+    <link href="/static/css/custom-style.css" rel="stylesheet">
+    <style>
+        .model-select-card {
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .model-select-card:hover {
+            border-color: #fbbf24;
+            transform: translateY(-2px);
+        }
+        .model-select-card.selected {
+            background: linear-gradient(135deg, rgba(212, 168, 48, 0.2), rgba(212, 168, 48, 0.05));
+            border-color: #fbbf24;
+            box-shadow: 0 0 15px rgba(251, 191, 36, 0.3);
+        }
+        .model-select-card.selected .check-mark {
+            display: flex;
+        }
+        .check-mark {
+            display: none;
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            width: 22px;
+            height: 22px;
+            background: #fbbf24;
+            border-radius: 50%;
+            align-items: center;
+            justify-content: center;
+            color: #1f2937;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .chat-message {
+            animation: fadeInUp 0.3s ease-out;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse-dot {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+        .typing-indicator span {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #fbbf24;
+            animation: pulse-dot 1.4s infinite ease-in-out both;
+        }
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        .round-badge {
+            background: linear-gradient(135deg, rgba(212, 168, 48, 0.3), rgba(212, 168, 48, 0.1));
+            border: 1px solid rgba(251, 191, 36, 0.4);
+        }
+        #chat-container {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(251, 191, 36, 0.3) transparent;
+        }
+        #chat-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        #chat-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        #chat-container::-webkit-scrollbar-thumb {
+            background: rgba(251, 191, 36, 0.3);
+            border-radius: 3px;
+        }
+        .model-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(251, 191, 36, 0.4);
+        }
+        .side-badge-pro {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid rgba(16, 185, 129, 0.5);
+            color: #34d399;
+            font-weight: 600;
+        }
+        .side-badge-con {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.5);
+            color: #f87171;
+            font-weight: 600;
+        }
+        .side-toggle {
+            display: flex;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid rgba(251, 191, 36, 0.3);
+            margin-top: 8px;
+        }
+        .side-toggle button {
+            padding: 6px 12px;
+            font-size: 13px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: rgba(31, 41, 55, 0.8);
+            color: #6b7280;
+            letter-spacing: 0.05em;
+        }
+        .side-toggle button.active-pro {
+            background: rgba(16, 185, 129, 0.25);
+            color: #34d399;
+            box-shadow: inset 0 0 12px rgba(16, 185, 129, 0.15);
+        }
+        .side-toggle button.active-con {
+            background: rgba(239, 68, 68, 0.25);
+            color: #f87171;
+            box-shadow: inset 0 0 12px rgba(239, 68, 68, 0.15);
+        }
+        .confirm-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .confirm-dialog {
+            background: #1f2937;
+            border: 2px solid rgba(251, 191, 36, 0.4);
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+        .vote-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .vote-dialog {
+            background: #1f2937;
+            border: 2px solid rgba(251, 191, 36, 0.4);
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .vote-card {
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid rgba(251, 191, 36, 0.2);
+        }
+        .vote-card:hover {
+            border-color: #fbbf24;
+            transform: translateY(-2px);
+        }
+        .vote-card.voted {
+            border-color: #fbbf24;
+            background: linear-gradient(135deg, rgba(212, 168, 48, 0.2), rgba(212, 168, 48, 0.05));
+            box-shadow: 0 0 15px rgba(251, 191, 36, 0.3);
+        }
+    </style>
+</head>
+<body class="font-noto-sans text-gray-100 min-h-screen overflow-x-hidden selection:bg-gold-500/30">
+    <div class="grain-overlay fixed inset-0 z-0 pointer-events-none"></div>
+
+    <audio id="button-click" src="/static/audio/button-click.wav" preload="none"></audio>
+    <script src="/static/js/audio.js"></script>
+
+    <div id="group-chat-page" class="relative z-10 min-h-screen flex flex-col">
+        <button id="back-btn" class="absolute top-4 left-4 bg-gray-900/80 border-2 border-gold-500/30 hover:border-gold-500 text-gray-100 py-2 px-4 rounded-lg font-noto-sans transition-all duration-300 hover:bg-gold-500/10 shadow-lg z-20">
+            <i class="fa fa-arrow-left mr-2"></i> 返回主页
+        </button>
+
+        <h1 class="mt-16 md:mt-20 text-3xl md:text-4xl font-cinzel text-white tracking-widest mb-6 text-center drop-shadow-lg">
+            模型群聊室
+        </h1>
+        <p class="text-center text-gray-400 mb-8 text-sm">选择多个AI模型，发起话题，观看它们之间的讨论与辩论</p>
+
+        <div id="setup-panel" class="max-w-4xl mx-auto w-full px-4 mb-8">
+            <div class="bg-gray-900/90 border-2 border-gold-500/20 rounded-lg p-6 shadow-xl">
+                <div class="mb-6">
+                    <label class="block text-gold-400 font-cinzel text-lg mb-3 tracking-wide">讨论话题</label>
+                    <textarea id="topic-input" rows="3" style="color: #111827; background-color: #ffffff;" class="w-full border border-gold-500/20 rounded-lg px-4 py-3 placeholder-gray-400 focus:border-gold-500 focus:outline-none transition-colors resize-none" placeholder="输入你想让AI模型讨论的话题，例如：人工智能是否会取代人类的工作？"></textarea>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-gold-400 font-cinzel text-lg mb-3 tracking-wide">讨论轮次</label>
+                    <div class="flex items-center gap-4">
+                        <input type="range" id="rounds-slider" min="1" max="10" value="3" class="flex-1 accent-yellow-500">
+                        <span id="rounds-value" class="text-gold-400 font-cinzel text-xl min-w-[3rem] text-center">3</span>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <label class="text-gold-400 font-cinzel text-lg tracking-wide">选择模型与立场</label>
+                        <span id="model-count" class="text-sm text-gray-400">已选 0 / 10（最少2个）</span>
+                    </div>
+                    <div class="flex items-center gap-4 mb-3 text-xs text-gray-500">
+                        <span><span class="inline-block w-3 h-3 rounded-sm bg-green-500/30 border border-green-500/50 mr-1 align-middle"></span>正方 = 支持话题</span>
+                        <span><span class="inline-block w-3 h-3 rounded-sm bg-red-500/30 border border-red-500/50 mr-1 align-middle"></span>反方 = 反对话题</span>
+                    </div>
+                    <div id="models-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+                    <div id="no-providers" class="hidden text-center py-6 text-gray-500">
+                        <i class="fa fa-exclamation-triangle text-2xl mb-2"></i>
+                        <p>请先在狼人杀主页设置中配置API供应商</p>
+                    </div>
+                </div>
+
+                <button id="start-chat-btn" class="w-full bg-gray-800 border-2 border-gold-500/30 hover:border-gold-500 text-gray-100 py-3 px-6 rounded-lg font-noto-sans transition-all duration-300 hover:bg-gold-500/10 shadow-lg disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+                    <i class="fa fa-comments mr-2"></i> 开始讨论
+                </button>
+            </div>
+        </div>
+
+        <div id="chat-panel" class="hidden max-w-4xl mx-auto w-full px-4 flex-1 flex flex-col pb-8">
+            <div class="bg-gray-900/90 border-2 border-gold-500/20 rounded-lg shadow-xl flex flex-col flex-1 min-h-[500px] max-h-[75vh]">
+                <div class="p-4 border-b border-gold-500/20 flex items-center justify-between">
+                    <div>
+                        <h2 id="chat-topic" class="font-cinzel text-gold-400 text-lg tracking-wide truncate max-w-[400px]"></h2>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span id="chat-round-info" class="text-xs text-gray-400"></span>
+                            <span id="chat-status" class="text-xs text-gray-500"></span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="stop-chat-btn" class="bg-red-900/60 border border-red-500/30 hover:border-red-500 text-red-300 py-1.5 px-4 rounded-lg text-sm transition-all duration-300 hover:bg-red-500/10">
+                            <i class="fa fa-stop mr-1"></i> 停止
+                        </button>
+                        <button id="new-chat-btn" class="bg-gray-800 border border-gold-500/30 hover:border-gold-500 text-gray-300 py-1.5 px-4 rounded-lg text-sm transition-all duration-300 hover:bg-gold-500/10">
+                            <i class="fa fa-plus mr-1"></i> 新话题
+                        </button>
+                    </div>
+                </div>
+
+                <div id="chat-container" class="flex-1 overflow-y-auto p-4 space-y-4">
+                </div>
+
+                <div id="typing-area" class="hidden px-4 py-3 border-t border-gold-500/10 bg-gray-900/50">
+                    <div class="flex items-center gap-2">
+                        <span id="typing-model" class="text-sm text-gold-400"></span>
+                        <div class="typing-indicator flex gap-1">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="confirm-overlay" class="confirm-overlay hidden">
+        <div class="confirm-dialog">
+            <i class="fa fa-exclamation-circle text-3xl text-gold-400 mb-4"></i>
+            <h3 class="text-lg font-cinzel text-white mb-2">确认停止讨论？</h3>
+            <p class="text-sm text-gray-400 mb-6">停止后将返回首页，当前讨论内容将不会保存</p>
+            <div class="flex gap-3 justify-center">
+                <button id="confirm-cancel" class="bg-gray-700 border border-gray-600 text-gray-300 py-2 px-6 rounded-lg text-sm transition-all hover:bg-gray-600">
+                    取消
+                </button>
+                <button id="confirm-stop" class="bg-red-900/60 border border-red-500/50 text-red-300 py-2 px-6 rounded-lg text-sm transition-all hover:bg-red-800/60">
+                    确认停止
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="vote-overlay" class="vote-overlay hidden">
+        <div class="vote-dialog">
+            <div class="text-center mb-6">
+                <i class="fa fa-trophy text-3xl text-gold-400 mb-3"></i>
+                <h3 class="text-xl font-cinzel text-white mb-2">辩论结束！请投票</h3>
+                <p class="text-sm text-gray-400">选择你认为表现最好的模型</p>
+            </div>
+            <div id="vote-cards" class="space-y-3 mb-6"></div>
+            <div class="flex gap-3 justify-center">
+                <button id="vote-skip" class="bg-gray-700 border border-gray-600 text-gray-300 py-2 px-6 rounded-lg text-sm transition-all hover:bg-gray-600">
+                    跳过投票
+                </button>
+                <button id="vote-submit" class="bg-gold-500/20 border border-gold-500/50 text-gold-400 py-2 px-6 rounded-lg text-sm transition-all hover:bg-gold-500/30 disabled:opacity-40 disabled:cursor-not-allowed" disabled>
+                    提交投票
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let providers = [];
+        let selectedModels = [];
+        let ws = null;
+        let currentRoomId = null;
+        let isChatRunning = false;
+        let chatModels = [];
+        let typewriterTimer = null;
+        let pendingMessages = [];
+        let isTypewriting = false;
+        let votedModel = null;
+
+        const MODEL_AVATARS = {
+            'gpt': '/static/logo/ChatGPT.png',
+            'chatgpt': '/static/logo/ChatGPT.png',
+            'openai': '/static/logo/ChatGPT.png',
+            'deepseek': '/static/logo/DeepSeek.png',
+            'qwen': '/static/logo/Qwen.png',
+            'kimi': '/static/logo/Kimi.png',
+            'minimax': '/static/logo/Minimax.png',
+            'glm': '/static/logo/zhipu-GLM.png',
+            'zhipu': '/static/logo/zhipu-GLM.png',
+            'llama': '/static/logo/llama.png',
+            'nvidia': '/static/logo/Nvidia.png',
+            'gamma': '/static/logo/Gamma.png',
+            'seed': '/static/logo/bytedance-seed.png',
+            'bytedance': '/static/logo/bytedance-seed.png',
+        };
+
+        function getModelAvatar(modelName) {
+            const lower = (modelName || '').toLowerCase();
+            for (const [key, path] of Object.entries(MODEL_AVATARS)) {
+                if (lower.includes(key)) return path;
+            }
+            return '/static/logo/ChatGPT.png';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function playSoundSafe(opts) {
+            try { playSound(opts); } catch(e) {}
+        }
+
+        function getSideLabel(side) {
+            return side === 'pro' ? '正方' : '反方';
+        }
+
+        function getSideBadgeClass(side) {
+            return side === 'pro' ? 'side-badge-pro' : 'side-badge-con';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initAudio();
+            loadProviders();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            document.getElementById('back-btn').addEventListener('click', () => {
+                playSoundSafe({ id: 'button-click' });
+                if (ws) { try { ws.close(); } catch(e) {} }
+                setTimeout(() => { window.location.href = '/'; }, 100);
+            });
+
+            const roundsSlider = document.getElementById('rounds-slider');
+            const roundsValue = document.getElementById('rounds-value');
+            roundsSlider.addEventListener('input', () => {
+                roundsValue.textContent = roundsSlider.value;
+            });
+
+            document.getElementById('start-chat-btn').addEventListener('click', startChat);
+            document.getElementById('stop-chat-btn').addEventListener('click', showStopConfirm);
+            document.getElementById('new-chat-btn').addEventListener('click', newChat);
+
+            document.getElementById('confirm-cancel').addEventListener('click', () => {
+                document.getElementById('confirm-overlay').classList.add('hidden');
+            });
+            document.getElementById('confirm-stop').addEventListener('click', () => {
+                document.getElementById('confirm-overlay').classList.add('hidden');
+                doStopChat();
+            });
+
+            document.getElementById('vote-skip').addEventListener('click', closeVoteDialog);
+            document.getElementById('vote-submit').addEventListener('click', submitVote);
+        }
+
+        async function loadProviders() {
+            try {
+                const resp = await fetch('/api/config', { cache: 'no-store' });
+                const data = await resp.json();
+                providers = Object.values(data.providers || {});
+                renderModels();
+            } catch (e) {
+                console.error('加载providers失败', e);
+                providers = [];
+                renderModels();
+            }
+        }
+
+        function renderModels() {
+            const grid = document.getElementById('models-grid');
+            const noProviders = document.getElementById('no-providers');
+
+            if (providers.length === 0) {
+                grid.classList.add('hidden');
+                noProviders.classList.remove('hidden');
+                return;
+            }
+
+            grid.classList.remove('hidden');
+            noProviders.classList.add('hidden');
+            grid.innerHTML = '';
+
+            providers.forEach(p => {
+                const models = p.used_models || (p.default_model ? [p.default_model] : []);
+                if (models.length === 0) return;
+
+                models.forEach(m => {
+                    const card = document.createElement('div');
+                    card.className = 'model-select-card bg-gray-800/60 border-2 border-gold-500/20 rounded-lg p-3';
+                    card.dataset.providerId = p.id;
+                    card.dataset.modelName = m;
+
+                    const avatar = getModelAvatar(m);
+                    card.innerHTML = `
+                        <div class="check-mark"><i class="fa fa-check"></i></div>
+                        <div class="flex items-center gap-3 mb-2">
+                            <img src="${avatar}" class="model-avatar" alt="${escapeHtml(m)}" onerror="this.src='/static/logo/ChatGPT.png'">
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-medium text-gray-200 truncate">${escapeHtml(m)}</div>
+                                <div class="text-xs text-gray-500">${escapeHtml(p.name)}</div>
+                            </div>
+                        </div>
+                        <div class="side-toggle w-full" data-provider-id="${p.id}" data-model-name="${m}">
+                            <button class="flex-1 active-pro" data-side="pro">正方</button>
+                            <button class="flex-1" data-side="con">反方</button>
+                        </div>
+                    `;
+
+                    card.addEventListener('click', (e) => {
+                        if (e.target.closest('.side-toggle')) return;
+                        toggleModel(p.id, m, card);
+                    });
+
+                    card.querySelectorAll('.side-toggle button').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const side = btn.dataset.side;
+                            const toggle = btn.closest('.side-toggle');
+                            toggle.querySelectorAll('button').forEach(b => {
+                                b.classList.remove('active-pro', 'active-con');
+                            });
+                            btn.classList.add(side === 'pro' ? 'active-pro' : 'active-con');
+                            updateModelSide(p.id, m, side);
+                        });
+                    });
+
+                    grid.appendChild(card);
+                });
+            });
+        }
+
+        function toggleModel(providerId, modelName, cardEl) {
+            const idx = selectedModels.findIndex(
+                s => s.provider_id === providerId && s.model_name === modelName
+            );
+
+            if (idx >= 0) {
+                selectedModels.splice(idx, 1);
+                cardEl.classList.remove('selected');
+            } else {
+                if (selectedModels.length >= 10) {
+                    alert('最多选择10个模型');
+                    return;
+                }
+                const toggle = cardEl.querySelector('.side-toggle');
+                const activeBtn = toggle.querySelector('.active-pro, .active-con');
+                const side = activeBtn ? activeBtn.dataset.side : 'pro';
+                selectedModels.push({
+                    provider_id: providerId,
+                    model_name: modelName,
+                    display_name: modelName,
+                    side: side,
+                });
+                cardEl.classList.add('selected');
+            }
+
+            updateModelCount();
+        }
+
+        function updateModelSide(providerId, modelName, side) {
+            const model = selectedModels.find(
+                s => s.provider_id === providerId && s.model_name === modelName
+            );
+            if (model) {
+                model.side = side;
+            }
+        }
+
+        function updateModelCount() {
+            const count = selectedModels.length;
+            const proCount = selectedModels.filter(m => m.side === 'pro').length;
+            const conCount = selectedModels.filter(m => m.side === 'con').length;
+            document.getElementById('model-count').textContent = `已选 ${count} / 10（正方${proCount} 反方${conCount}）`;
+            document.getElementById('start-chat-btn').disabled = count < 2;
+        }
+
+        async function startChat() {
+            const topic = document.getElementById('topic-input').value.trim();
+            if (!topic) {
+                alert('请输入讨论话题');
+                return;
+            }
+            if (selectedModels.length < 2) {
+                alert('请至少选择2个模型');
+                return;
+            }
+
+            const proCount = selectedModels.filter(m => m.side === 'pro').length;
+            const conCount = selectedModels.filter(m => m.side === 'con').length;
+            if (proCount === 0 || conCount === 0) {
+                alert('正方和反方至少各需要一个模型');
+                return;
+            }
+
+            const maxRounds = parseInt(document.getElementById('rounds-slider').value);
+
+            playSoundSafe({ id: 'button-click' });
+
+            try {
+                const resp = await fetch('/api/group-chat/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        topic: topic,
+                        models: selectedModels,
+                        max_rounds: maxRounds,
+                    }),
+                });
+
+                const data = await resp.json();
+                if (!data.success) {
+                    alert(data.message || '创建群聊失败');
+                    return;
+                }
+
+                currentRoomId = data.room_id;
+                chatModels = (data.models || []).map(m => ({
+                    display_name: m.display_name,
+                    model_name: m.model_name,
+                    provider_id: m.provider_id,
+                    side: m.side || 'pro',
+                }));
+                showChatPanel(data);
+                connectWebSocket();
+
+            } catch (e) {
+                console.error('创建群聊失败', e);
+                alert('创建群聊失败');
+            }
+        }
+
+        function showChatPanel(data) {
+            document.getElementById('setup-panel').classList.add('hidden');
+            document.getElementById('chat-panel').classList.remove('hidden');
+            document.getElementById('chat-topic').textContent = data.topic;
+            document.getElementById('chat-round-info').textContent = `共 ${data.max_rounds} 轮 · ${data.models.length} 个模型`;
+            document.getElementById('chat-status').textContent = '连接中...';
+            document.getElementById('chat-container').innerHTML = '';
+            pendingMessages = [];
+            isTypewriting = false;
+        }
+
+        function connectWebSocket() {
+            const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const token = localStorage.getItem('ws_auth_token') || '';
+            let url = `${protocol}//${location.host}/ws/group-chat`;
+            if (token) url += `?token=${encodeURIComponent(token)}`;
+
+            ws = new WebSocket(url);
+
+            ws.onopen = () => {
+                ws.send(JSON.stringify({
+                    type: 'join_room',
+                    room_id: currentRoomId,
+                }));
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    handleWSMessage(msg);
+                } catch (e) {
+                    console.error('解析消息失败', e);
+                }
+            };
+
+            ws.onclose = () => {
+                document.getElementById('chat-status').textContent = '连接已断开';
+            };
+
+            ws.onerror = (e) => {
+                console.error('WebSocket错误', e);
+                document.getElementById('chat-status').textContent = '连接错误';
+            };
+        }
+
+        function handleWSMessage(msg) {
+            switch (msg.type) {
+                case 'room_joined':
+                    document.getElementById('chat-status').textContent = '已连接';
+                    ws.send(JSON.stringify({ type: 'start_discussion' }));
+                    break;
+
+                case 'chat_started':
+                    isChatRunning = true;
+                    if (msg.models) {
+                        chatModels = msg.models.map(m => ({
+                            display_name: m.display_name,
+                            model_name: m.model_name,
+                            provider_id: m.provider_id,
+                            side: m.side || 'pro',
+                        }));
+                    }
+                    document.getElementById('chat-status').textContent = '讨论中...';
+                    document.getElementById('stop-chat-btn').classList.remove('hidden');
+                    break;
+
+                case 'round_start':
+                    addRoundDivider(msg.round, msg.max_rounds);
+                    break;
+
+                case 'model_thinking':
+                    showTypingIndicator(msg.display_name, msg.side);
+                    break;
+
+                case 'model_message':
+                    hideTypingIndicator();
+                    pendingMessages.push({
+                        displayName: msg.display_name,
+                        modelName: msg.model_name,
+                        content: msg.content,
+                        round: msg.round,
+                        side: msg.side || 'pro',
+                    });
+                    processNextMessage();
+                    break;
+
+                case 'chat_completed':
+                    isChatRunning = false;
+                    hideTypingIndicator();
+                    document.getElementById('chat-status').textContent = '讨论已结束';
+                    document.getElementById('stop-chat-btn').classList.add('hidden');
+                    waitForTypewriterThen(() => {
+                        addSystemMessage('讨论已结束！');
+                        showVoteDialog();
+                    });
+                    break;
+
+                case 'chat_stopped':
+                    isChatRunning = false;
+                    hideTypingIndicator();
+                    document.getElementById('chat-status').textContent = '讨论已停止';
+                    document.getElementById('stop-chat-btn').classList.add('hidden');
+                    addSystemMessage('讨论已停止');
+                    break;
+
+                case 'error':
+                    hideTypingIndicator();
+                    addSystemMessage('错误：' + (msg.message || '未知错误'), true);
+                    break;
+            }
+        }
+
+        function waitForTypewriterThen(callback) {
+            if (!isTypewriting && pendingMessages.length === 0) {
+                callback();
+                return;
+            }
+            const check = setInterval(() => {
+                if (!isTypewriting && pendingMessages.length === 0) {
+                    clearInterval(check);
+                    callback();
+                }
+            }, 100);
+        }
+
+        function processNextMessage() {
+            if (isTypewriting || pendingMessages.length === 0) return;
+
+            isTypewriting = true;
+            const msg = pendingMessages.shift();
+            typewriterMessage(msg.displayName, msg.modelName, msg.content, msg.round, msg.side, () => {
+                isTypewriting = false;
+                if (pendingMessages.length > 0) {
+                    processNextMessage();
+                }
+            });
+        }
+
+        function typewriterMessage(displayName, modelName, content, round, side, onComplete) {
+            const container = document.getElementById('chat-container');
+            const avatar = getModelAvatar(modelName);
+            const sideLabel = getSideLabel(side);
+            const sideBadgeClass = getSideBadgeClass(side);
+
+            const msgEl = document.createElement('div');
+            msgEl.className = 'chat-message flex gap-3';
+            msgEl.innerHTML = `
+                <img src="${avatar}" class="model-avatar flex-shrink-0 mt-1" alt="${escapeHtml(displayName)}" onerror="this.src='/static/logo/ChatGPT.png'">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="text-gold-400 font-medium text-sm">${escapeHtml(displayName)}</span>
+                        <span class="${sideBadgeClass} text-sm px-2 py-0.5 rounded font-medium">${sideLabel}</span>
+                        <span class="text-gray-600 text-xs">第${round}轮</span>
+                    </div>
+                    <div class="bg-gray-800/80 border border-gold-500/10 rounded-lg px-4 py-3 text-gray-200 text-sm leading-relaxed msg-content"></div>
+                </div>
+            `;
+            container.appendChild(msgEl);
+
+            const contentEl = msgEl.querySelector('.msg-content');
+            const htmlContent = escapeHtml(content).replace(/\n/g, '<br>');
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = htmlContent;
+            const plainChars = [];
+            const brPositions = new Set();
+
+            let charIdx = 0;
+            for (const node of tempDiv.childNodes) {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    for (const ch of node.textContent) {
+                        plainChars.push({ type: 'char', char: ch, htmlIdx: charIdx });
+                        charIdx++;
+                    }
+                } else if (node.nodeName === 'BR') {
+                    brPositions.add(charIdx);
+                    charIdx++;
+                }
+            }
+
+            let rendered = 0;
+            const speed = 20;
+
+            function tick() {
+                const chunkSize = Math.max(1, Math.floor(3 + Math.random() * 3));
+                for (let i = 0; i < chunkSize && rendered < plainChars.length; i++) {
+                    rendered++;
+                }
+
+                let partialHtml = '';
+                let pos = 0;
+                for (const item of plainChars) {
+                    if (pos >= rendered) break;
+                    while (brPositions.has(pos)) {
+                        partialHtml += '<br>';
+                        pos++;
+                        if (pos >= rendered) break;
+                    }
+                    if (pos >= rendered) break;
+                    if (item.type === 'char' && pos === item.htmlIdx) {
+                        partialHtml += item.char;
+                        pos++;
+                    }
+                }
+                while (brPositions.has(pos) && pos < rendered) {
+                    partialHtml += '<br>';
+                    pos++;
+                }
+
+                contentEl.innerHTML = partialHtml;
+                scrollToBottom();
+
+                if (rendered < plainChars.length) {
+                    typewriterTimer = setTimeout(tick, speed);
+                } else {
+                    contentEl.innerHTML = htmlContent;
+                    scrollToBottom();
+                    if (onComplete) onComplete();
+                }
+            }
+
+            tick();
+        }
+
+        function addRoundDivider(round, maxRounds) {
+            const container = document.getElementById('chat-container');
+            const divider = document.createElement('div');
+            divider.className = 'flex items-center justify-center my-4';
+            divider.innerHTML = `
+                <div class="round-badge px-4 py-1 rounded-full text-xs text-gold-400 font-cinzel tracking-wider">
+                    第 ${round} 轮 / 共 ${maxRounds} 轮
+                </div>
+            `;
+            container.appendChild(divider);
+            scrollToBottom();
+        }
+
+        function addSystemMessage(text, isError) {
+            const container = document.getElementById('chat-container');
+            const el = document.createElement('div');
+            el.className = 'text-center text-xs py-2 ' + (isError ? 'text-red-400' : 'text-gray-500');
+            el.textContent = text;
+            container.appendChild(el);
+            scrollToBottom();
+        }
+
+        function showTypingIndicator(displayName, side) {
+            const area = document.getElementById('typing-area');
+            const model = document.getElementById('typing-model');
+            const sideLabel = side ? getSideLabel(side) : '';
+            model.innerHTML = `${sideLabel ? '<span class="' + getSideBadgeClass(side) + ' text-sm px-2 py-0.5 rounded font-medium mr-1">' + sideLabel + '</span>' : ''}${escapeHtml(displayName)} 正在思考...`;
+            area.classList.remove('hidden');
+            scrollToBottom();
+        }
+
+        function hideTypingIndicator() {
+            document.getElementById('typing-area').classList.add('hidden');
+        }
+
+        function scrollToBottom() {
+            const container = document.getElementById('chat-container');
+            requestAnimationFrame(() => {
+                container.scrollTop = container.scrollHeight;
+            });
+        }
+
+        function showStopConfirm() {
+            playSoundSafe({ id: 'button-click' });
+            document.getElementById('confirm-overlay').classList.remove('hidden');
+        }
+
+        function doStopChat() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'stop_discussion' }));
+            }
+            if (typewriterTimer) {
+                clearTimeout(typewriterTimer);
+                typewriterTimer = null;
+            }
+            isTypewriting = false;
+            pendingMessages = [];
+            newChat();
+        }
+
+        function stopChat() {
+            showStopConfirm();
+        }
+
+        function newChat() {
+            playSoundSafe({ id: 'button-click' });
+            if (ws) {
+                try { ws.close(); } catch(e) {}
+                ws = null;
+            }
+            if (typewriterTimer) {
+                clearTimeout(typewriterTimer);
+                typewriterTimer = null;
+            }
+            currentRoomId = null;
+            isChatRunning = false;
+            isTypewriting = false;
+            pendingMessages = [];
+            selectedModels = [];
+            chatModels = [];
+            document.getElementById('chat-panel').classList.add('hidden');
+            document.getElementById('setup-panel').classList.remove('hidden');
+            document.getElementById('topic-input').value = '';
+            document.getElementById('rounds-slider').value = 3;
+            document.getElementById('rounds-value').textContent = '3';
+            document.querySelectorAll('.model-select-card').forEach(c => {
+                c.classList.remove('selected');
+                const toggle = c.querySelector('.side-toggle');
+                if (toggle) {
+                    toggle.querySelectorAll('button').forEach(btn => {
+                        btn.classList.remove('active-pro', 'active-con');
+                    });
+                    const proBtn = toggle.querySelector('button[data-side="pro"]');
+                    if (proBtn) proBtn.classList.add('active-pro');
+                }
+            });
+            updateModelCount();
+        }
+
+        function showVoteDialog() {
+            votedModel = null;
+            const cardsContainer = document.getElementById('vote-cards');
+            cardsContainer.innerHTML = '';
+
+            chatModels.forEach(m => {
+                const avatar = getModelAvatar(m.model_name);
+                const sideLabel = getSideLabel(m.side);
+                const sideBadgeClass = getSideBadgeClass(m.side);
+
+                const card = document.createElement('div');
+                card.className = 'vote-card bg-gray-800/60 rounded-lg p-3 flex items-center gap-3';
+                card.dataset.modelName = m.model_name;
+                card.innerHTML = `
+                    <img src="${avatar}" class="model-avatar flex-shrink-0" alt="${escapeHtml(m.display_name)}" onerror="this.src='/static/logo/ChatGPT.png'">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                            <span class="text-gold-400 font-medium text-sm">${escapeHtml(m.display_name)}</span>
+                            <span class="${sideBadgeClass} text-sm px-2 py-0.5 rounded font-medium">${sideLabel}</span>
+                        </div>
+                    </div>
+                    <div class="vote-check hidden text-gold-400 text-lg"><i class="fa fa-check-circle"></i></div>
+                `;
+
+                card.addEventListener('click', () => {
+                    cardsContainer.querySelectorAll('.vote-card').forEach(c => {
+                        c.classList.remove('voted');
+                        c.querySelector('.vote-check').classList.add('hidden');
+                    });
+                    card.classList.add('voted');
+                    card.querySelector('.vote-check').classList.remove('hidden');
+                    votedModel = m.model_name;
+                    document.getElementById('vote-submit').disabled = false;
+                });
+
+                cardsContainer.appendChild(card);
+            });
+
+            document.getElementById('vote-submit').disabled = true;
+            document.getElementById('vote-overlay').classList.remove('hidden');
+        }
+
+        function submitVote() {
+            if (!votedModel) return;
+            playSoundSafe({ id: 'button-click' });
+            closeVoteDialog();
+            addSystemMessage(`你投票给了 ${votedModel}`);
+        }
+
+        function closeVoteDialog() {
+            document.getElementById('vote-overlay').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>

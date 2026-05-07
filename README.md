@@ -43,6 +43,16 @@
   - 显示当前等级和经验值进度条
 - **每日挑战系统**：每日随机刷新3个挑战任务
 
+### 模型群聊室
+- **多模型辩论**：选择 2-10 个 AI 模型，发起话题，观看它们之间的讨论与辩论
+- **正方/反方立场**：每个模型可指定正方（支持）或反方（反对）立场，后端根据立场生成不同的辩论提示词
+- **打字机效果**：模型回答逐字显示，前一个模型回答完毕后才显示下一个模型的回答
+- **实时通信**：基于 WebSocket 的实时消息推送，模型思考时有动态指示器
+- **讨论轮次**：支持 1-20 轮讨论，每轮所有模型依次发言
+- **停止确认**：停止讨论时弹出确认对话框，防止误操作
+- **投票系统**：讨论结束后弹出投票对话框，用户可为表现最好的模型投票
+- **独立页面**：群聊室有独立的 UI 页面，从主页导航按钮进入
+
 ### 考试系统
 - 支持上传题库文件（.txt格式）
 - 支持两种题库格式：
@@ -89,6 +99,7 @@ d:/project/AI Werewolf Game/
 ├── crypto.py                   # 加密解密模块
 ├── logger.py                   # 日志模块
 ├── exam.py                     # 考试系统模块
+├── group_chat.py               # 模型群聊室模块
 ├── game/
 │   ├── engine.py              # 游戏核心引擎
 │   ├── ai_player.py           # AI 玩家逻辑
@@ -106,6 +117,7 @@ d:/project/AI Werewolf Game/
 ├── static/
 │   ├── index.html             # 主页面
 │   ├── exam.html              # 考试页面
+│   ├── group_chat.html        # 模型群聊室页面
 │   ├── js/                    # JavaScript 文件
 │   │   ├── main.js            # 主程序逻辑
 │   │   ├── stats.js           # 统计模块
@@ -176,6 +188,8 @@ uvicorn app:app --reload
 打开浏览器访问：`http://localhost:8000`
 
 访问考试页面：`http://localhost:8000/exam`
+
+访问模型群聊室：`http://localhost:8000/group-chat`
 
 ## 配置 API
 
@@ -249,6 +263,7 @@ pytest tests/ -q
 - ✅ 实现成就和排行榜系统
 - ✅ 添加考试系统
 - ✅ API Key 加密存储
+- ✅ 添加模型群聊室（多模型辩论 + 正方/反方 + 打字机效果 + 投票系统）
 
 ## API 端点
 
@@ -270,6 +285,11 @@ pytest tests/ -q
 - `POST /api/exam/upload` - 上传题库文件
 - `GET /api/exam/question/{question_id}` - 获取单个题目
 - `POST /api/exam/answer` - 提交答案并评分
+
+### 模型群聊室
+- `POST /api/group-chat/create` - 创建群聊房间
+- `POST /api/group-chat/{room_id}/stop` - 停止群聊讨论
+- `WS /ws/group-chat` - WebSocket 群聊连接
 
 ### 统计与排行榜
 - `GET /api/stats/summary` - 获取游戏统计摘要

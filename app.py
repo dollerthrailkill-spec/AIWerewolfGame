@@ -62,6 +62,7 @@ from exam import (
     save_uploaded_file,
     get_question_by_file_and_id
 )
+from group_chat import group_chat_manager, GroupChatCreateRequest
 
 app = FastAPI(title="AI 狼人杀", description="AI 驱动的狼人杀游戏，支持 6/8/10 人局，所有玩家均由大语言模型驱动。")
 
@@ -109,7 +110,7 @@ api_rate_limiter = RateLimiter(max_requests=30, window_seconds=60)
 async def rate_limit_middleware(request: Request, call_next):
     """对 API 请求进行速率限制，静态资源和 WebSocket 升级请求豁免"""
     path = request.url.path
-    if path.startswith("/static") or path == "/ws" or path == "/" or path.startswith("/api/exam/"):
+    if path.startswith("/static") or path == "/ws" or path == "/ws/group-chat" or path == "/" or path.startswith("/api/exam/") or path.startswith("/api/group-chat/"):
         return await call_next(request)
 
     client_ip = request.client.host if request.client else "unknown"
@@ -1220,3 +1221,183 @@ async def complete_daily_challenge(challenge_date: str = None, challenge_index: 
         return {"success": False, "message": "挑战不存在或已完成"}
     except Exception as e:
         return {"success": False, "message": str(e)}
+
+
+# ==================== 模型群聊室 ====================
+
+@app.get("/group-chat", summary="模型群聊室页面")
+async def group_chat_page():
+    page_path = Path(__file__).parent / "static" / "group_chat.html"
+    if page_path.exists():
+        return FileResponse(str(page_path))
+    return {"message": "群聊室页面不存在，请创建 static/group_chat.html"}
+
+
+@app.post("/api/group-chat/create", summary="创建群聊房间", description="创建一个新的模型群聊房间，2-10个模型参与讨论")
+async def create_group_chat(request: GroupChatCreateRequest):
+    config = load_config()
+    providers = config.get("providers", {})
+
+    valid_providers = {}
+    for pid, prov in providers.items():
+        encrypted_key = prov.get("api_key", "")
+        api_key = decrypt_api_key(encrypted_key)
+        api_url = prov.get("api_url", "")
+        if api_key and api_url:
+            valid_providers[pid] = {
+                "id": pid,
+                "name": prov.get("name", ""),
+                "api_key": api_key,
+                "api_url": api_url,
+                "default_model": prov.get("default_model", "gpt-3.5-turbo"),
+            }
+
+    if not valid_providers:
+        return {"success": False, "message": "请先配置至少一个模型供应商"}
+
+    for m in request.models:
+        if m.provider_id not in valid_providers:
+            return {"success": False, "message": f"供应商 {m.provider_id} 不存在或配置不完整"}
+
+    room = group_chat_manager.create_room(
+        topic=request.topic,
+        models=request.models,
+        max_rounds=request.max_rounds,
+        providers=valid_providers,
+    )
+
+    return {
+        "success": True,
+        "room_id": room.room_id,
+        "topic": room.topic,
+        "max_rounds": room.max_rounds,
+        "models": [
+            {"display_name": m.display_name, "model_name": m.model_name, "provider_id": m.provider_id, "side": m.side}
+            for m in room.models
+        ],
+    }
+
+
+@app.post("/api/group-chat/{room_id}/stop", summary="停止群聊讨论")
+async def stop_group_chat(room_id: str):
+    room = group_chat_manager.get_room(room_id)
+    if not room:
+        return {"success": False, "message": "房间不存在"}
+    room.stop()
+    return {"success": True, "message": "讨论已停止"}
+
+
+@app.websocket("/ws/group-chat")
+async def group_chat_websocket(ws: WebSocket, token: str = Query("")):
+    if WS_AUTH_TOKEN and not secrets.compare_digest(token, WS_AUTH_TOKEN):
+        await ws.close(code=4001, reason="认证失败：无效的连接令牌")
+        return
+
+    await ws.accept()
+
+    room_id = None
+
+    try:
+        while True:
+            data = await ws.receive_text()
+            try:
+                msg = json.loads(data)
+            except (json.JSONDecodeError, TypeError):
+                await ws.send_json({"type": "error", "message": "无效的消息格式"})
+                continue
+
+            if not isinstance(msg, dict) or not msg.get("type"):
+                await ws.send_json({"type": "error", "message": "消息缺少 type 字段"})
+                continue
+
+            msg_type = msg.get("type")
+
+            if msg_type == "join_room":
+                room_id = msg.get("room_id")
+                if not room_id:
+                    await ws.send_json({"type": "error", "message": "缺少 room_id"})
+                    continue
+
+                room = group_chat_manager.get_room(room_id)
+                if not room:
+                    await ws.send_json({"type": "error", "message": "房间不存在"})
+                    continue
+
+                async def broadcast_to_ws(message: dict):
+                    try:
+                        await ws.send_json(message)
+                    except Exception:
+                        pass
+
+                room.set_broadcast(broadcast_to_ws)
+
+                await ws.send_json({
+                    "type": "room_joined",
+                    "room_id": room_id,
+                    "topic": room.topic,
+                    "messages": [
+                        {
+                            "display_name": m.display_name,
+                            "model_name": m.model_name,
+                            "content": m.content,
+                            "round": m.round_num,
+                            "side": m.side,
+                        }
+                        for m in room.messages
+                    ],
+                })
+
+            elif msg_type == "start_discussion":
+                if not room_id:
+                    await ws.send_json({"type": "error", "message": "请先加入房间"})
+                    continue
+
+                room = group_chat_manager.get_room(room_id)
+                if not room:
+                    await ws.send_json({"type": "error", "message": "房间不存在"})
+                    continue
+
+                if room.is_running:
+                    await ws.send_json({"type": "error", "message": "讨论正在进行中"})
+                    continue
+
+                async def run_and_cleanup():
+                    try:
+                        await room.run_discussion()
+                    except asyncio.CancelledError:
+                        pass
+                    except Exception as e:
+                        logger.error("群聊运行错误: %s", e)
+                        try:
+                            await ws.send_json({"type": "error", "message": f"讨论出错：{str(e)[:100]}"})
+                        except Exception:
+                            pass
+
+                room.chat_task = asyncio.create_task(run_and_cleanup())
+
+            elif msg_type == "stop_discussion":
+                if not room_id:
+                    await ws.send_json({"type": "error", "message": "请先加入房间"})
+                    continue
+
+                room = group_chat_manager.get_room(room_id)
+                if room:
+                    room.stop()
+                    if room.chat_task and not room.chat_task.done():
+                        room.chat_task.cancel()
+
+            else:
+                await ws.send_json({"type": "error", "message": f"未知的消息类型: {msg_type}"})
+
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        logger.error("群聊 WebSocket 异常: %s", e)
+    finally:
+        if room_id:
+            room = group_chat_manager.get_room(room_id)
+            if room:
+                room.stop()
+                if room.chat_task and not room.chat_task.done():
+                    room.chat_task.cancel()
+                group_chat_manager.remove_room(room_id)
