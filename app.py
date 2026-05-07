@@ -37,6 +37,10 @@ if _IS_PRODUCTION and not _ALLOWED_ORIGINS:
 
 from game_manager import game_manager, RoomState
 from game.text_utils import filter_think_process
+from game.config import (
+    LLM_THINKING_TIMEOUT,
+    LLM_THINKING_MODEL_KEYWORDS,
+)
 from game.error_handler import safe_execute, handle_api_error
 from crypto import encrypt_api_key, decrypt_api_key, mask_api_key, _safe_decrypt_api_key, _is_encrypted_key
 from game.engine import GameEngine
@@ -879,29 +883,52 @@ async def submit_exam_answer(input_data: ExamAnswerInput):
             
             model = input_data.model or provider.get("default_model", "gpt-3.5-turbo")
             
-            # 构建提示词，只要求回答答案
-            prompt = f"""请直接回答以下数学题，不要任何思考过程，不要解释，只给最终答案。
+            is_thinking_model = any(
+                keyword in model.lower() for keyword in LLM_THINKING_MODEL_KEYWORDS
+            )
+            timeout = LLM_THINKING_TIMEOUT if is_thinking_model else 30.0
+            max_tokens = 2000 if is_thinking_model else 200
+
+            subject_hint = ""
+            if input_data.file_name:
+                fn_lower = input_data.file_name.lower()
+                if '语文' in fn_lower or 'chinese' in fn_lower:
+                    subject_hint = "语文"
+                elif '数学' in fn_lower or '奥数' in fn_lower or 'math' in fn_lower:
+                    subject_hint = "数学"
+                elif '英语' in fn_lower or 'english' in fn_lower:
+                    subject_hint = "英语"
+                elif '物理' in fn_lower or 'physics' in fn_lower:
+                    subject_hint = "物理"
+                elif '化学' in fn_lower or 'chemistry' in fn_lower:
+                    subject_hint = "化学"
+
+            subject_line = f"请直接回答以下{subject_hint}题" if subject_hint else "请直接回答以下题目"
+            prompt = f"""{subject_line}，不要任何思考过程，不要解释，只给最终答案。
 
 题目：{question.question}
 
 要求：
-1. 不要写 <think> 或任何思考内容
+1. 不要写  thinking 或任何思考内容
 2. 不要写解题步骤
 3. 只给出最终答案，越简短越好"""
             
             payload = {
                 "model": model,
                 "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": 200,
+                "max_tokens": max_tokens,
                 "temperature": 0.3
             }
             
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=timeout) as client:
                 resp = await client.post(url, headers=headers, json=payload)
                 if resp.status_code == 200:
                     result = resp.json()
-                    model_answer = result["choices"][0]["message"]["content"].strip()
-                    # 过滤掉 <think> 思考过程，只保留最终答案
+                    message = result["choices"][0].get("message", {})
+                    model_answer = (message.get("content") or "").strip()
+                    reasoning = (message.get("reasoning_content") or "").strip()
+                    if not model_answer and reasoning:
+                        model_answer = reasoning
                     model_answer = filter_think_process(model_answer)
                 else:
                     return {"success": False, "message": f"模型请求失败：{resp.status_code}", "error": resp.text}
